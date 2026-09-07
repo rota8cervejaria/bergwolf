@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <title>BergWolf Craft Beer - ERP + Confraria</title>
+    <title>BergWolf Craft Beer - ERP</title>
     <script>
     // ══════════════════════════════════════════════════════════════════
     // AUTO-MIGRAÇÃO SILENCIOSA — roda sozinha, sem botão, sem pergunta.
@@ -275,7 +275,7 @@
         header{position:fixed;top:0;left:0;width:100%;background:rgba(44,24,16,0.98);z-index:1000;padding:15px 0;border-bottom:2px solid var(--primary)}
         @supports (backdrop-filter:blur(10px)){header{backdrop-filter:blur(10px)}}
         .header-container{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;padding:0 20px}
-        .logo-text{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;color:var(--primary);text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:8px}
+        .logo-text{font-family:'Bebas Neue',cursive;font-size:24px;letter-spacing:1px;color:var(--primary);text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap}
         .nav-menu{display:flex;gap:20px;align-items:center}
         .nav-menu a{text-decoration:none;color:#fff;font-weight:600;font-size:13px;text-transform:uppercase;cursor:pointer;transition:.3s}
         .nav-menu a:hover{color:var(--primary)}
@@ -881,7 +881,7 @@
         .venda-secao h3{color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:10px;margin-bottom:20px;font-size:18px}
         .campo-real{background-color:#e8f5e9!important;color:#b71c1c!important;font-weight:500}
         @media(max-width:768px){.nav-menu{display:none}.hamburger{display:flex}.hero-title-box h1{font-size:36px}.hero-grid{grid-template-columns:1fr;text-align:center}.planos-grid{grid-template-columns:1fr}.form-row{flex-direction:column}}
-        @media(max-width:480px){.grid-sub,.submenu-cards{gap:10px}.card-menu,.card-sub,.submenu-cards .card-sub{height:110px;padding:14px 4px}.card-menu i,.card-sub i{font-size:26px;margin-bottom:8px}.card-menu span,.card-sub span{font-size:11px}}
+        @media(max-width:480px){.grid-sub,.submenu-cards{gap:10px}.card-menu,.card-sub,.submenu-cards .card-sub{height:110px;padding:14px 4px}.card-menu i,.card-sub i{font-size:26px;margin-bottom:8px}.card-menu span,.card-sub span{font-size:11px}.logo-text{font-size:18px;letter-spacing:.5px}}
 
         /* MARCA D'ÁGUA */
         .erp-container {
@@ -1727,9 +1727,7 @@ window._menuAcao = function(acao) {
     // Funções destino podem não existir ainda — chamar com delay seguro
     setTimeout(function(){
         if(acao==='cervejaria' && window.abrirModal) window.abrirModal('cervejaria');
-        else if(acao==='confraria' && window.abrirModal) window.abrirModal('confraria');
         else if(acao==='estilos' && window.mostrarEstiloPub) window.mostrarEstiloPub();
-        else if(acao==='planos' && window.abrirModal) window.abrirModal('planos');
     }, 0);
 };
 </script>
@@ -1885,10 +1883,7 @@ window._menuAcao = function(acao) {
         </a>
         <nav class="nav-menu">
             <a href="#" onclick="abrirModal('cervejaria');return false;">A Cervejaria</a>
-            <a href="#" onclick="abrirModal('confraria');return false;">A Confraria</a>
             <a href="#" onclick="mostrarEstiloPub();return false;">Estilos</a>
-            <a href="#" onclick="abrirModal('planos');return false;">Planos</a>
-            <a href="#" onclick="abrirModal('assinar');return false;" class="btn-assinar">ASSINE JÁ</a>
             <a href="#" onclick="if(typeof mostrarLoginFirebase==='function'){mostrarLoginFirebase();}else{_menuAcao('erp');}return false;" class="btn-erp">ERP</a>
         </nav>
         <button class="hamburger" id="btnHamburger" aria-label="Menu" onclick="var _erp=document.getElementById('erpSystemContainer').style.display==='block';var _login=document.getElementById('loginFirebaseContainer').style.display==='flex';if(_erp||_login)return;document.getElementById('mobileNav').classList.toggle('active');document.getElementById('menuOverlay').classList.toggle('active');"><span></span><span></span><span></span></button>
@@ -1898,9 +1893,7 @@ window._menuAcao = function(acao) {
 <div class="overlay" id="menuOverlay" onclick="var _erp=document.getElementById('erpSystemContainer').style.display==='block';var _login=document.getElementById('loginFirebaseContainer').style.display==='flex';if(!_erp&&!_login){document.getElementById('mobileNav').classList.remove('active');this.classList.remove('active');}"></div>
 <div class="mobile-menu" id="mobileNav">
     <button class="menu-mobile-btn" onclick="_menuAcao('cervejaria')">A Cervejaria</button>
-    <button class="menu-mobile-btn" onclick="_menuAcao('confraria')">A Confraria</button>
     <button class="menu-mobile-btn" onclick="_menuAcao('estilos')">Estilos</button>
-    <button class="menu-mobile-btn" onclick="_menuAcao('planos')">Planos</button>
     <button class="menu-mobile-btn" style="color:var(--primary)" onclick="_menuAcao('erp')">ERP</button>
 </div>
 
@@ -1908,49 +1901,10 @@ window._menuAcao = function(acao) {
 <div id="landingPageContent" style="display:block">
     <section class="hero" style="display:block!important;background:#2c1810!important;color:#fff!important;padding:40px 20px 60px;margin-top:70px">
         <div class="hero-container">
-            <div class="hero-title-box" style="background:#2c1810;color:#c49a2b;padding:5px 20px"><h1 style="color:#c49a2b;font-size:36px">BergWolf Confraria</h1></div>
+            <div class="hero-title-box" style="background:#2c1810;color:#c49a2b;padding:5px 20px"><h1 style="color:#c49a2b;font-size:36px">BergWolf Craft Beer</h1></div>
             <div class="hero-grid">
-                <div class="hero-text"><p>Receba em casa uma seleção exclusiva das nossas melhores brassagens. Um mergulho profundo na cultura cervejeira artesanal.</p></div>
+                <div class="hero-text"><p>A BergWolf Craft Beer é uma microcervejaria artesanal, brewpub que une produção própria de cervejas com consumo no local. Combina cervejas especiais, gastronomia e ambiente acolhedor.</p></div>
                 <div class="hero-images"><div class="insumo-card"><img src="https://images.unsplash.com/photo-1566633806327-68e152aaf26d?auto=format&fit=crop&q=80&w=800" class="insumo-img"></div></div>
-            </div>
-        </div>
-    </section>
-    <section class="planos-section">
-        <div class="planos-container">
-            <h2>CLUBE DO ASSINANTE</h2>
-            <p>Assinante receberá mensalmente 4 cervejas de estilos exclusivos, os quais estão descritos no Menu opção Estilos.</p>
-            <div class="planos-grid">
-                <div class="plano-card">
-                    <div class="plano-nome">Plano Mensal</div>
-                    <div class="plano-preco"><span class="preco-principal">R$ 119,90</span><span class="preco-mes">/mês</span></div>
-                    <ul class="plano-beneficios">
-                        <li><i class="fas fa-check"></i> Flexibilidade total, sem fidelização</li>
-                        <li><i class="fas fa-check"></i> 5% desconto no brewpub</li>
-                    </ul>
-                    <button class="btn-plano" onclick="abrirModal('assinar')"><i class="fas fa-beer"></i> ASSINE AGORA</button>
-                </div>
-                <div class="plano-card destaque">
-                    <div class="plano-nome">Plano Semestral</div>
-                    <div class="plano-preco"><span class="preco-principal">R$ 659,00</span><span class="preco-mes">/6 meses</span><div class="preco-parcela">Equivalente a R$ 109,80/mês</div></div>
-                    <ul class="plano-beneficios">
-                        <li><i class="fas fa-check"></i> Compromisso médio com benefício financeiro</li>
-                        <li><i class="fas fa-check"></i> 10% desconto no brewpub</li>
-                        <li><i class="fas fa-check"></i> 1 cerveja exclusiva edição limitada</li>
-                        <li><i class="fas fa-check"></i> Imersão e participação em uma produção</li>
-                    </ul>
-                    <button class="btn-plano" onclick="abrirModal('assinar')"><i class="fas fa-beer"></i> ASSINE AGORA</button>
-                </div>
-                <div class="plano-card">
-                    <div class="plano-nome">Plano Anual</div>
-                    <div class="plano-preco"><span class="preco-principal">R$ 1.199,00</span><span class="preco-mes">/12 meses</span><div class="preco-parcela">Equivalente a R$ 99,90/mês</div></div>
-                    <ul class="plano-beneficios">
-                        <li><i class="fas fa-check"></i> Máximo valor e experiência premium</li>
-                        <li><i class="fas fa-check"></i> 15% desconto no brewpub</li>
-                        <li><i class="fas fa-check"></i> 2 cervejas exclusivas bônus no ano</li>
-                        <li><i class="fas fa-check"></i> Degustação, imersão e participação em produção</li>
-                    </ul>
-                    <button class="btn-plano" onclick="abrirModal('assinar')"><i class="fas fa-beer"></i> ASSINE AGORA</button>
-                </div>
             </div>
         </div>
     </section>
@@ -1958,6 +1912,7 @@ window._menuAcao = function(acao) {
         <div class="footer-grid" style="grid-template-columns:1fr;max-width:600px">
             <div class="footer-col" style="text-align:left">
                 <h4 style="text-align:center;margin-bottom:16px">Entre em Contato</h4>
+
                 <div class="footer-contact-item" style="justify-content:flex-start">
                     <i class="fas fa-map-marker-alt footer-icon"></i>
                     <p>Av. Gov. Celso Ramos, 3140 - Centro<br>Porto Belo - SC</p>
@@ -2165,20 +2120,6 @@ window.abrirModal = function(tipo, estiloId) {
     var html = '';
     if(tipo==='cervejaria') {
         cont.innerHTML = '<h2 class="detalhe-titulo">A Cervejaria</h2><p class="texto-justificado">A BergWolf Craft Beer é uma microcervejaria artesanal, brewpub que une produção própria de cervejas com consumo no local. Combina cervejas especiais, gastronomia e ambiente acolhedor.</p>';
-    } else if(tipo==='confraria') {
-        cont.innerHTML = '<h2 class="detalhe-titulo">A Confraria</h2><p class="texto-justificado">A BergWolf Confraria é uma comunidade exclusiva que aprofunda o vínculo entre cliente e cervejaria, oferecendo experiências diferenciadas e acesso a cervejas especiais e exclusivas. Clube que transforma clientes em membros.</p>';
-    } else if(tipo==='planos') {
-        cont.innerHTML = '<h2 class="detalhe-titulo">Planos</h2><div class="planos-modal-grid">'
-            + '<div class="planos-modal-card"><h3>Plano Mensal</h3><p><strong>R$ 119,90/mês</strong></p><p>Flexibilidade total</p><p>5% desconto no brewpub</p><button class="btn-assinar-plano-modal" id="btnAssinarPlano">ASSINE</button></div>'
-            + '<div class="planos-modal-card"><h3>Plano Semestral</h3><p><strong>R$ 659,00</strong></p><p>10% desconto</p><p>1 cerveja exclusiva</p><button class="btn-assinar-plano-modal" id="btnAssinarPlano2">ASSINE</button></div>'
-            + '<div class="planos-modal-card"><h3>Plano Anual</h3><p><strong>R$ 1.199,00</strong></p><p>15% desconto</p><p>2 cervejas bonus</p><button class="btn-assinar-plano-modal" id="btnAssinarPlano3">ASSINE</button></div>'
-            + '</div>';
-        setTimeout(function(){
-            ['btnAssinarPlano','btnAssinarPlano2','btnAssinarPlano3'].forEach(function(id){
-                var b = document.getElementById(id);
-                if(b) b.onclick = function(){ window.abrirModal('assinar'); };
-            });
-        }, 50);
     } else if(tipo==='estilos') {
         var g = '<h2 class="detalhe-titulo">Estilos BergWolf</h2><div class="estilos-grid">';
         if(window.estilosData) {
@@ -2205,31 +2146,6 @@ window.abrirModal = function(tipo, estiloId) {
         }, 50);
         modal.classList.add('active');
         return;
-    } else if(tipo==='assinar') {
-        cont.innerHTML = '<h2 class="detalhe-titulo">Assinar BergWolf Confraria</h2>'
-            + '<div class="assinatura-form">'
-            + '<div class="form-row"><div class="campo"><label>Nome Completo *</label><input type="text" id="nomeAssinante" placeholder="-"></div>'
-            + '<div class="campo"><label>CPF *</label><input type="text" id="cpfAssinante" placeholder="-"></div></div>'
-            + '<div class="form-row"><div class="campo"><label>Rua *</label><input type="text" id="ruaAssinante" placeholder="-"></div>'
-            + '<div class="campo"><label>Nº *</label><input type="text" id="numeroAssinante" placeholder="-"></div></div>'
-            + '<div class="form-row"><div class="campo"><label>Bairro *</label><input type="text" id="bairroAssinante" placeholder="-"></div>'
-            + '<div class="campo"><label>Cidade *</label><input type="text" id="cidadeAssinante" placeholder="-"></div></div>'
-            + '<div class="campo"><label>Celular *</label><input type="text" id="celularAssinante" placeholder="-"></div>'
-            + '<div class="pix-area"><h4>Pagamento via PIX</h4><div class="chave-pix">52.013.107/0001-78</div>'
-            + '<button class="btn-copiar" id="btnCopiarPix">Copiar chave</button></div>'
-            + '<button class="btn-assinar-final" id="btnFinalizarAssinar">Finalizar Assinatura</button>'
-            + '</div>';
-        setTimeout(function(){
-            var bp = document.getElementById('btnCopiarPix');
-            if(bp) bp.onclick = function(){ navigator.clipboard.writeText('52.013.107/0001-78').then(function(){ R8.toast.ok('Chave Pix copiada!'); }); };
-            var bf = document.getElementById('btnFinalizarAssinar');
-            if(bf) bf.onclick = function(){ if(typeof enviarParaWhatsApp === 'function') enviarParaWhatsApp(); };
-            // Aplicar máscaras
-            var cpfEl = document.getElementById('cpfAssinante');
-            var celEl = document.getElementById('celularAssinante');
-            if(cpfEl) window._aplicarMascaraCPF(cpfEl);
-            if(celEl) window._aplicarMascaraTelefone(celEl);
-        }, 50);
     } else {
         cont.innerHTML = '<h2>'+tipo.toUpperCase()+'</h2><p>Conteúdo em atualização.</p>';
     }
@@ -6058,7 +5974,7 @@ window.gerarQREquipamento = function(codigo) {
     var t = (dadosERP.equipamentos || []).find(function(x) { return x.codigo === codigo; });
     if (!t) { R8.toast.erro('Equipamento não encontrado.'); return; }
 
-    var url = 'https://bergwolfcraftbeer.github.io/bergwolf?equipamento=' + encodeURIComponent(codigo);
+    var url = 'https://rota8cervejaria.github.io/bergwolf?equipamento=' + encodeURIComponent(codigo);
     var c = document.getElementById('qrTanqueContainer');
     if (c) {
         c.innerHTML = '<div style="background:#fff;border:1.5px solid #c49a2b;border-radius:14px;padding:16px;display:inline-block">'
@@ -8510,7 +8426,7 @@ window.gerarQRBarril = function(codigo) {
     var b = dadosERP.barris.find(function(x) { return x.codigo === codigo; });
     if (!b) { R8.toast.erro('Barril não encontrado.'); return; }
 
-    var url = 'https://bergwolfcraftbeer.github.io/bergwolf?barril=' + encodeURIComponent(codigo);
+    var url = 'https://rota8cervejaria.github.io/bergwolf?barril=' + encodeURIComponent(codigo);
     var c = document.getElementById('qrBarrilContainer');
     if (c) {
         c.innerHTML = '<div style="background:#fff;border:1.5px solid #c49a2b;border-radius:14px;padding:16px;display:inline-block">'
@@ -9473,7 +9389,7 @@ function atualizarProdutosRastreio(){
     var specs=[];
     c.innerHTML=lista.map(function(f,i){
         var thumbId='thumbProd_'+i;
-        specs.push({id:thumbId,url:'https://bergwolfcraftbeer.github.io/bergwolf?lote='+encodeURIComponent(f.lote)+'&foco=destino'});
+        specs.push({id:thumbId,url:'https://rota8cervejaria.github.io/bergwolf?lote='+encodeURIComponent(f.lote)+'&foco=destino'});
         return '<div class="rastreio-card">'
             + '<div class="rastreio-qr-thumb" id="'+thumbId+'" title="Ampliar QR Code" onclick="gerarQRProduto(\'' + R8.esc(f.lote) + '\')"><i class="fas fa-spinner fa-spin"></i></div>'
             + '<div class="rc-info">'
@@ -9494,7 +9410,7 @@ window.gerarQRProduto=function(lote){
     // Marcador &foco=destino: mesma ficha da Ficha Técnica, mas ao abrir
     // pula direto pra seção "Destino do Lote" (Câmara Fria/PDV/TAP) — é o
     // que importa pra quem escaneia o QR de um Produto Acabado específico.
-    var url='https://bergwolfcraftbeer.github.io/bergwolf?lote='+encodeURIComponent(lote)+'&foco=destino';
+    var url='https://rota8cervejaria.github.io/bergwolf?lote='+encodeURIComponent(lote)+'&foco=destino';
     var c=document.getElementById('qrcodeContainer');
     c.innerHTML='<p style="font-size:12px;margin-bottom:8px;font-weight:bold">Lote: '+lote+'</p>'
         +'<div id="_qrProdutoImg" style="min-height:60px;display:flex;align-items:center;justify-content:center"><i class="fas fa-spinner fa-spin" style="color:#94a3b8"></i></div>'
@@ -9507,7 +9423,7 @@ window.gerarQRProduto=function(lote){
 };
 window.gerarQRFicha=function(lote){
     var f=dadosERP.fichasTecnicas.find(function(x){return x.lote===lote;});if(!f)return;
-    var url='https://bergwolfcraftbeer.github.io/bergwolf?lote='+encodeURIComponent(lote);
+    var url='https://rota8cervejaria.github.io/bergwolf?lote='+encodeURIComponent(lote);
     var label='Ficha: '+lote+' — '+f.estilo;
     var c=document.getElementById('qrFichaContainer');
     c.innerHTML='<p style="font-size:12px;margin-bottom:8px;font-weight:bold">'+label+'</p>'
@@ -9529,7 +9445,7 @@ function atualizarFichasRastreio(){
     var specs=[];
     c.innerHTML=dadosERP.fichasTecnicas.map(function(f,i){
         var thumbId='thumbFicha_'+i;
-        specs.push({id:thumbId,url:'https://bergwolfcraftbeer.github.io/bergwolf?lote='+encodeURIComponent(f.lote)});
+        specs.push({id:thumbId,url:'https://rota8cervejaria.github.io/bergwolf?lote='+encodeURIComponent(f.lote)});
         return '<div class="rastreio-card">'
             + '<div class="rastreio-qr-thumb" id="'+thumbId+'" title="Ampliar QR Code" data-lote="' + R8.esc(f.lote) + '" onclick="gerarQRFicha(this.getAttribute(\'data-lote\'))"><i class="fas fa-spinner fa-spin"></i></div>'
             + '<div class="rc-info">'
@@ -9557,8 +9473,8 @@ window._r8UrlQRVenda=function(v){
     // Barril com código individual: aponta pro Destino do Barril (histórico
     // de todas as saídas daquele barril). Sem código individual: aponta
     // direto pra esta venda/transferência específica (não o lote inteiro).
-    if(v.embalagemCodigo) return 'https://bergwolfcraftbeer.github.io/bergwolf?barril='+encodeURIComponent(v.embalagemCodigo);
-    return 'https://bergwolfcraftbeer.github.io/bergwolf?venda='+encodeURIComponent(v.id||'');
+    if(v.embalagemCodigo) return 'https://rota8cervejaria.github.io/bergwolf?barril='+encodeURIComponent(v.embalagemCodigo);
+    return 'https://rota8cervejaria.github.io/bergwolf?venda='+encodeURIComponent(v.id||'');
 };
 function atualizarVendasRastreio(){
     window._r8MigrarIdsVendas();
@@ -9607,7 +9523,7 @@ window.gerarQRVenda=function(idx){
 window.gerarEtiquetaPDF=function(lote){
     var f=dadosERP.fichasTecnicas.find(function(x){return x.lote===lote;});
     if(!f){R8.toast.erro('Ficha não encontrada.');return;}
-    var url='https://bergwolfcraftbeer.github.io/bergwolf?lote='+encodeURIComponent(lote);
+    var url='https://rota8cervejaria.github.io/bergwolf?lote='+encodeURIComponent(lote);
     r8QRComLogo(url,4).then(function(qrResult){
     var qrSrc=qrResult.dataUrl;
     // Perfil sensorial do estilo
@@ -9685,7 +9601,7 @@ window.gerarEtiquetaPDF=function(lote){
     }
     // URL
     pdf.setTextColor(120,100,60);pdf.setFontSize(6);pdf.setFont('helvetica','normal');
-    pdf.text('bergwolfcraftbeer.github.io/bergwolf',rx+(W-rx)/2,ry,{align:'center'});ry+=6;
+    pdf.text('rota8cervejaria.github.io/bergwolf',rx+(W-rx)/2,ry,{align:'center'});ry+=6;
     // Lote abaixo do QR
     pdf.setTextColor(196,154,43);pdf.setFontSize(11);pdf.setFont('helvetica','bold');
     pdf.text(f.lote,rx+(W-rx)/2,ry,{align:'center'});
@@ -10659,22 +10575,6 @@ window.gerarPDFFichaLayout=gerarPDFFichaLayout;
 // abrirModal/fecharModal definidos no primeiro script
 
 
-window.enviarParaWhatsApp=function(){
-    let nome=document.getElementById('nomeAssinante')?.value||'';
-    let cpf=document.getElementById('cpfAssinante')?.value||'';
-    let rua=document.getElementById('ruaAssinante')?.value||'';
-    let num=document.getElementById('numeroAssinante')?.value||'';
-    let bairro=document.getElementById('bairroAssinante')?.value||'';
-    let cidade=document.getElementById('cidadeAssinante')?.value||'';
-    let estado=document.getElementById('estadoAssinante')?.value||'';
-    let cep=document.getElementById('cepAssinante')?.value||'';
-    let cel=document.getElementById('celularAssinante')?.value||'';
-    let msg='🍺 NOVA ASSINATURA - BERGWOLF CONFRARIA 🍺\n\n📋 DADOS:\nNome: '+nome+'\nCPF: '+cpf+'\nCelular: '+cel+'\n\n📍 ENDEREÇO:\n'+rua+', '+num+' - '+bairro+', '+cidade+'/'+estado+' - CEP: '+cep+'\n\n💳 PIX: 52.013.107/0001-78';
-    window.open('https://wa.me/5547992087958?text='+encodeURIComponent(msg),'_blank');
-    fecharModal();
-};
-
-
 
 // ══════════════════════════════════════════════════════════
 // TELAS PÚBLICAS — Lote e Estilo (acesso via QR Code)
@@ -11321,7 +11221,7 @@ window.mostrarLocalizacaoLotePub = function(lote) {
                 + '</div>';
             return;
         }
-        var qrUrl = 'https://bergwolfcraftbeer.github.io/bergwolf?lote=' + encodeURIComponent(f.lote);
+        var qrUrl = 'https://rota8cervejaria.github.io/bergwolf?lote=' + encodeURIComponent(f.lote);
         c.innerHTML = '<div class="pub-screen">'
             + _pubHeader('Localização do Lote', 'window._qrModoAtivo=false;mostrarLandingPage()')
             + '<div class="pub-hero">'
@@ -11657,7 +11557,7 @@ function _renderizarConteudoLote(container, f) {
     }
 
     // QR com logo BergWolf centralizado
-    var qrUrl = 'https://bergwolfcraftbeer.github.io/bergwolf?lote='+encodeURIComponent(lote);
+    var qrUrl = 'https://rota8cervejaria.github.io/bergwolf?lote='+encodeURIComponent(lote);
 
     container.innerHTML = '<div class="pub-screen">'
         + _pubHeader('Rastreabilidade', 'window._qrModoAtivo=false;mostrarLandingPage()')
