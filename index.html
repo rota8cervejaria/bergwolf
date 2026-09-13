@@ -1914,9 +1914,9 @@ window._menuAcao = function(acao) {
             BERGWOLF
         </a>
         <nav class="nav-menu">
-            <a href="#" onclick="abrirModal('cervejaria');return false;">A Cervejaria</a>
-            <a href="#" onclick="abrirModal('historia');return false;">Nossa História</a>
-            <a href="#" onclick="abrirLojaOnline();return false;" style="color:var(--primary)">Compras Online</a>
+            <a href="#" onclick="abrirModal('cervejaria');return false;">Cervejaria</a>
+            <a href="#" onclick="abrirModal('historia');return false;">Sobre Nós</a>
+            <a href="#rodapeContato" onclick="document.getElementById('rodapeContato').scrollIntoView({behavior:'smooth'});return false;">Contato</a>
             <a href="#" onclick="if(typeof mostrarLoginFirebase==='function'){mostrarLoginFirebase();}else{_menuAcao('erp');}return false;" class="btn-erp">ERP</a>
         </nav>
         <button class="hamburger" id="btnHamburger" aria-label="Menu" onclick="var _erp=document.getElementById('erpSystemContainer').style.display==='block';var _login=document.getElementById('loginFirebaseContainer').style.display==='flex';if(_erp||_login)return;document.getElementById('mobileNav').classList.toggle('active');document.getElementById('menuOverlay').classList.toggle('active');"><span></span><span></span><span></span></button>
@@ -1925,9 +1925,9 @@ window._menuAcao = function(acao) {
 
 <div class="overlay" id="menuOverlay" onclick="var _erp=document.getElementById('erpSystemContainer').style.display==='block';var _login=document.getElementById('loginFirebaseContainer').style.display==='flex';if(!_erp&&!_login){document.getElementById('mobileNav').classList.remove('active');this.classList.remove('active');}"></div>
 <div class="mobile-menu" id="mobileNav">
-    <button class="menu-mobile-btn" onclick="_menuAcao('cervejaria')">A Cervejaria</button>
-    <button class="menu-mobile-btn" onclick="_menuAcao('historia')">Nossa História</button>
-    <button class="menu-mobile-btn" style="color:var(--primary)" onclick="document.getElementById('mobileNav').classList.remove('active');abrirLojaOnline()">Compras Online</button>
+    <button class="menu-mobile-btn" onclick="_menuAcao('cervejaria')">Cervejaria</button>
+    <button class="menu-mobile-btn" onclick="_menuAcao('historia')">Sobre Nós</button>
+    <button class="menu-mobile-btn" onclick="document.getElementById('mobileNav').classList.remove('active');document.getElementById('rodapeContato').scrollIntoView({behavior:'smooth'})">Contato</button>
     <button class="menu-mobile-btn" style="color:var(--primary)" onclick="_menuAcao('erp')">ERP</button>
 </div>
 
@@ -1978,10 +1978,10 @@ window._menuAcao = function(acao) {
 <div id="landingPageContent" style="display:block">
     <section class="hero" style="display:block!important;background:var(--bege)!important;color:var(--text)!important;padding:40px 20px 60px;margin-top:70px">
         <div class="hero-container">
-            <div class="hero-title-box" style="background:var(--bege);color:var(--dark);padding:5px 20px"><h1 style="color:var(--dark);font-size:36px">CERVEJARIA BERGWOLF</h1></div>
+            <div class="hero-title-box" style="background:var(--bege);color:var(--dark);padding:5px 20px"><h1 style="color:var(--dark);font-size:36px">BERGWOLF</h1></div>
             <div class="hero-grid">
                 <div class="hero-text">
-                    <p><strong>Já nascemos com tradição.</strong> A primeira cervejaria de Chopinzinho/PR, dedicada à qualidade e inovação em cada gole, trazendo receitas do mundo todo para momentos especiais.</p>
+                    <p>Significa <strong>Lobo da Montanha</strong> no idioma alemão e simboliza tudo o que nos move. A <strong>Liberdade</strong> para ousar e criar cervejas espetaculares; <strong>Lealdade</strong> à Lei da Pureza da Cerveja; <strong>Determinação</strong> em alcançar a excelência em nossas cervejas e <strong>Sabedoria</strong> para produzir cervejas de estilos, aromas e sabores variados, proporcionando a nossos clientes experiências únicas.</p>
                     <a href="#" onclick="abrirLojaOnline();return false;" style="display:inline-flex;align-items:center;gap:10px;margin-top:22px;background:var(--primary);color:#fff;font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:1px;padding:14px 28px;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(196,154,43,0.4)">
                         <i class="fas fa-cart-shopping"></i> COMPRAS ONLINE
                     </a>
@@ -1990,7 +1990,7 @@ window._menuAcao = function(acao) {
             </div>
         </div>
     </section>
-    <footer style="padding-top:20px">
+    <footer id="rodapeContato" style="padding-top:20px">
         <div class="footer-grid" style="grid-template-columns:1fr;max-width:600px">
             <div class="footer-col" style="text-align:left">
                 <h4 style="text-align:center;margin-bottom:16px">Entre em Contato</h4>
