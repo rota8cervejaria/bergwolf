@@ -8530,8 +8530,8 @@ window.r8QRComLogo = function(url, tamanho) {
             // 1. Desenha o QR Code
             ctx.drawImage(qrImg, 0, 0, qrWidth, qrHeight);
 
-            // 2. Parâmetros do logo: 22% do tamanho do QR
-            var logoSize   = Math.round(qrWidth * 0.12);
+            // 2. Parâmetros do logo: 9% do tamanho do QR
+            var logoSize   = Math.round(qrWidth * 0.09);
             var logoX      = Math.round((qrWidth  - logoSize) / 2);
             var logoY      = Math.round((qrHeight - logoSize) / 2);
             var padding    = Math.round(logoSize * 0.12);
@@ -8554,10 +8554,19 @@ window.r8QRComLogo = function(url, tamanho) {
             ctx.stroke();
             ctx.restore();
 
-            // 4. Desenha o logo sobre o fundo branco
+            // 4. Desenha o logo, recortado em formato circular, sobre o fundo branco
             var logoImg = new Image();
             logoImg.onload = function() {
+                var logoR  = logoSize / 2;
+                var logoCx = logoX + logoR;
+                var logoCy = logoY + logoR;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(logoCx, logoCy, logoR, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
                 ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+                ctx.restore();
                 var dataUrl = canvas.toDataURL('image/png');
                 var w = qrWidth, h = qrHeight;
                 var finalImgTag = '<img src="' + dataUrl + '" width="' + w + '" height="' + h + '" style="display:block;margin:0 auto">';
