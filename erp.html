@@ -3940,7 +3940,7 @@ function _repopularTelaAtualAposLoad() {
             popularSelectSalLoteProducao();
             popularSelectTanqueProducao();
             popularSelectEstiloProducao();
-            ['malte','adjunto','lupulo','levedura','especiaria'].forEach(function(t){ popularSelectInsumoPorTipo(t); });
+            ['malte','adjunto','coadjuvante','lupulo','levedura','especiaria'].forEach(function(t){ popularSelectInsumoPorTipo(t); });
             popularSelectLupuloProducao();
             popularSelectLeveduraProducao();
             if (elTanque && valTanque) elTanque.value = valTanque;
@@ -6588,7 +6588,7 @@ window.irParaTelaERP = function(id) {
         try { popularSelectTanqueProducao(); } catch(e) {}
         try { popularSelectEstiloProducao(); } catch(e) {}
         try { popularSelectAguaOrigemProducao(); } catch(e) {}
-        try { ['malte','adjunto','lupulo','levedura','especiaria'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
+        try { ['malte','adjunto','coadjuvante','lupulo','levedura','especiaria'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
         try { popularSelectLupuloProducao(); } catch(e) {}
         try { popularSelectLeveduraProducao(); } catch(e) {}
         // Rede de segurança: se os dados do Firebase ainda não tinham chegado na 1ª tentativa, repopula após 1s
@@ -6602,7 +6602,7 @@ window.irParaTelaERP = function(id) {
             try { popularSelectTanqueProducao(); } catch(e) {}
             try { popularSelectEstiloProducao(); } catch(e) {}
             try { popularSelectAguaOrigemProducao(); } catch(e) {}
-            try { ['malte','adjunto','lupulo','levedura','especiaria'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
+            try { ['malte','adjunto','coadjuvante','lupulo','levedura','especiaria'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
             try { popularSelectLupuloProducao(); } catch(e) {}
             try { popularSelectLeveduraProducao(); } catch(e) {}
             if (elTanque && valTanque) elTanque.value = valTanque;
@@ -16207,12 +16207,14 @@ if(document.readyState === 'loading'){
         <div class="insumos-botoes">
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoMalteProducao')"><i class="fas fa-plus-circle"></i> Malte</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoAdjuntoProducao')"><i class="fas fa-plus-circle"></i> Adjunto</button>
+            <button class="btn-insumo" onclick="mostrarFormERP('formInsumoCoadjuvanteProducao')"><i class="fas fa-plus-circle"></i> Coadjuvante</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoLupuloProducao')"><i class="fas fa-plus-circle"></i> Lúpulo</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoLeveduraProducao')"><i class="fas fa-plus-circle"></i> Levedura</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoEspeciariaProducao')"><i class="fas fa-plus-circle"></i> Especiaria</button>
         </div>
         <div id="formInsumoMalteProducao" class="form-flutuante"><h3>Adicionar Malte</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoMalteSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (kg)</label><input type="number" step="0.01" id="insumoMalteQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('malte')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoMalteProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoAdjuntoProducao" class="form-flutuante"><h3>Adicionar Adjunto</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoAdjuntoSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (kg)</label><input type="number" step="0.01" id="insumoAdjuntoQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('adjunto')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoAdjuntoProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
+        <div id="formInsumoCoadjuvanteProducao" class="form-flutuante"><h3>Adicionar Coadjuvante</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoCoadjuvanteSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoCoadjuvanteQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('coadjuvante')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoCoadjuvanteProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoLupuloProducao" class="form-flutuante"><h3>Adicionar Lúpulo</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoLupuloSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoLupuloQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('lupulo')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoLupuloProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoLeveduraProducao" class="form-flutuante"><h3>Adicionar Levedura</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoLeveduraSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoLeveduraQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('levedura')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoLeveduraProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoEspeciariaProducao" class="form-flutuante"><h3>Adicionar Especiaria</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoEspeciariaSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoEspeciariaQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('especiaria')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoEspeciariaProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
