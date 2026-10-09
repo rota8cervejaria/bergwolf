@@ -6516,7 +6516,20 @@ window.irParaTelaERP = function(id) {
     if(id==='telaVendasTAP') { popularSelectLotesDisponveis('vendaLoteTAP','vendaEstiloTAP'); aplicarFiltrosVendasTAP(); let d=document.getElementById('vendaDataTAP'); if(d&&!d.value)d.value=obterData(); }
     if(id==='telaEnvase') { popularSelectLoteEnvase(); atualizarListaEnvase(); }
     if(id==='telaSanitizacao') { _renderFilaSanitizacaoPendente(); popularSelectEquipamentoSanitizacao(); popularSelectProdutoSanitizacao(); _toggleTipoLocalSanit(); atualizarListaSanitizacao(); }
-    if(id==='telaPasteurizacao'){if(window._editandoPastIdx===undefined)window._editandoPastIdx=null;window._pastL=[];popularSelectLotesDisponveis('pastLote','pastEstilo');document.getElementById('pastData').value=obterData();pastRenderTabela();pastRenderResultado();}
+    if(id==='telaPasteurizacao'){
+        if(window._editandoPastIdx===undefined)window._editandoPastIdx=null;
+        // Só reseta o formulário quando é um registro NOVO. Quando vem de
+        // pastArqEditar() (edição de um registro arquivado), o formulário já
+        // foi populado com os dados do registro logo antes desta navegação —
+        // reaplicar o reset aqui apagava leituras, data e lote selecionados,
+        // fazendo a tela de edição abrir em branco mesmo com o registro salvo.
+        if(window._editandoPastIdx===null){
+            window._pastL=[];
+            popularSelectLotesDisponveis('pastLote','pastEstilo');
+            document.getElementById('pastData').value=obterData();
+            pastRenderTabela();pastRenderResultado();
+        }
+    }
     if(id==='telaPastArquivados'){pastRenderHistorico();}
     if(id==='telaPastDashboard'){setTimeout(window._renderPastDashboard, 80);}
     if(id==='telaSubEstoque'){setTimeout(window._renderizarAlertasEstoque, 80);}
@@ -9320,9 +9333,11 @@ window.popularSelectEnvaseEmbalagem = function(incluirCodigoExtra){
         if(!b.codigo) return;
         var bloqueado = (b.status==='Em Uso' || b.status==='Aguardando Sanitização') && b.codigo!==incluirCodigoExtra;
         if(bloqueado) return; // bloqueado — só reaparece após sanitização (se aguardando) ou Recebimento
-        cache.push({codigo:b.codigo, descricao:b.descricao||b.tipo||b.codigo, tipoDetalhe:b.tipo||'', capacidade:b.capacidade||'', categoria:'Barril', emEdicao:(b.status==='Em Uso'&&b.codigo===incluirCodigoExtra)});
+        cache.push({codigo:b.codigo, descricao:b.descricao||b.tipo||b.codigo, tipoDetalhe:b.tipo||'', capacidade:b.capacidade||'', categoria:(b.tipo||'Barril'), emEdicao:(b.status==='Em Uso'&&b.codigo===incluirCodigoExtra)});
     });
     cache.push({codigo:'', descricao:'Lata (genérico — sem cadastro)', tipoDetalhe:'Lata', capacidade:'', categoria:'Lata'});
+    cache.push({codigo:'', descricao:'Garrafa (genérico — sem cadastro)', tipoDetalhe:'Garrafa', capacidade:'', categoria:'Garrafa'});
+    cache.push({codigo:'', descricao:'Growler (genérico — sem cadastro)', tipoDetalhe:'Growler', capacidade:'', categoria:'Growler'});
     window._envaseEmbCache = cache;
     var opts = ['<option value="">— Selecione —</option>'];
     cache.forEach(function(c,i){
