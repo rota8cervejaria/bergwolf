@@ -984,12 +984,25 @@
             box-shadow: 0 2px 10px rgba(44,24,16,0.07);
             display: grid;
             grid-template-areas:
+                "nome   nome"
                 "titulo titulo"
                 "dados  acoes"
                 "dados  icones"
                 "status status";
             grid-template-columns: 1fr auto;
             gap: 0 12px;
+        }
+        .ficha-arq-nome {
+            grid-area: nome;
+            text-align: center;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            line-height: 1.05;
+            letter-spacing: 3px;
+            color: #9a6f1b;
+            text-transform: uppercase;
+            margin: 2px 0 14px;
+            overflow-wrap: anywhere;
         }
         .ficha-arq-titulo {
             grid-area: titulo;
@@ -9217,6 +9230,8 @@ window.atualizarListaFichasERP = function() {
         var ico = _iconeStatus[sk] || '📋';
         var statusBadge = '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:'+st.cor+';background:'+st.bg+';border:1.5px solid '+st.borda+';border-radius:20px;padding:3px 10px;white-space:nowrap">'+ico+' '+st.label+'</span>';
         return '<div class="ficha-arq-card">'
+            // Nome da cerveja (somente o nome), centralizado — aparece quando a ficha tem nome
+            + (f.nome ? '<div class="ficha-arq-nome">'+R8.esc(f.nome)+'</div>' : '')
             // Título: Estilo
             + '<div class="ficha-arq-titulo">'+R8.esc(f.estilo||'—')+'</div>'
             // Lote / Data / Vol
@@ -21547,6 +21562,29 @@ window._BREWBEER_HTML_B64 = "PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0icHQtQlIiPjxoZWF
     if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', _bbInit); }
     else { _bbInit(); }
     window.addEventListener('load', _bbInit);
+
+    // O card "Brew Beer" era criado uma única vez. Se o ERP redesenhasse o menu depois
+    // (login, sincronização em tempo real, nova injeção do HTML), o card sumia e aparecia o
+    // menu antigo, sem o Brew Beer. Agora ele é recolocado sempre que faltar:
+    //  (1) ao entrar na tela Processo de Produção (antes de ela aparecer) e
+    //  (2) sempre que o ERP alterar o conteúdo da página (verificação leve, com espera de 150 ms).
+    (function(){
+        var espera = null;
+        function agendar(){
+            if (espera) return;
+            espera = setTimeout(function(){ espera = null; try { _bbGarantirCard(); } catch (e) {} }, 150);
+        }
+        try { new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+        var original = window.irParaTelaERP;
+        if (typeof original === 'function' && !original._bbEnvolvida) {
+            var envolvida = function(id){
+                if (id === 'telaSubProcesso' || id === 'telaBrewBeer') { try { _bbInit(); } catch (e) {} }
+                return original.apply(this, arguments);
+            };
+            envolvida._bbEnvolvida = true;
+            window.irParaTelaERP = envolvida;
+        }
+    })();
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
