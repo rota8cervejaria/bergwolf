@@ -3956,6 +3956,7 @@ function salvarDadosFirebase() {
     }
     if(!_db || typeof _db.ref !== 'function') {
         mostrarSync('sync-error', '✗ Firebase indisponível (salvo só localmente)');
+        try { R8.toast.erro('Firebase indisponível: a alteração ficou só neste aparelho.', 9000); } catch(eT) {}
         return;
     }
 
@@ -4007,6 +4008,9 @@ function salvarDadosFirebase() {
                     mostrarSync('sync-error', '⟳ Reconectando… será sincronizado automaticamente', 5000);
                 } else {
                     mostrarSync('sync-error', '✗ Erro ao gravar: ' + msg);
+                    // Aviso em destaque: sem isso a alteração parece salva, mas fica só neste aparelho
+                    // e volta ao valor antigo na próxima sincronização.
+                    try { R8.toast.erro('NÃO foi gravado no servidor: ' + msg + ' — a alteração ficou só neste aparelho.', 9000); } catch(eT) {}
                 }
                 R8.log.erro('salvarDadosFirebase:async', err);
                 try { localStorage.setItem('rota8_sync_pendente', 'true'); } catch(e){R8.log.erro('salvarDadosFirebase:sync_pendente-async', e);}
@@ -6515,7 +6519,10 @@ window._r8ExigirAdmin = function(mensagem) {
 // ─── Normaliza densidade: 1047 → 1.047 / 1055 → 1.055 / 1.047 → 1.047 ──────
 window._normDens = function(val) {
     var v = parseFloat(String(val).replace(',', '.')) || 0;
-    if (v >= 1010) v = v / 1000;   // ex: 1047 → 1.047
+    // Formato em "pontos": 1047 → 1.047 e também FG baixo, 1006 → 1.006.
+    // (Antes só convertia a partir de 1010, então um FG de 1006 era lido como 1006 e
+    // gerava um °P absurdo, além de impedir o cálculo do ABV.)
+    if (v >= 100) v = v / 1000;
     return v;
 };
 
@@ -6540,7 +6547,7 @@ window._fmtDens = function(val) {
 // 1.042 → 10°P, 1.010 → 2°P, 1.037 → 9°P
 window._sgToPlato = function(sg) {
     var v = window._normDens(sg);
-    if (!v) return null;
+    if (!v || v < 0.98 || v > 1.2) return null;   // fora da faixa real de uma cerveja → sem °P (em vez de valor absurdo)
     return 135.997*Math.pow(v,3) - 630.272*Math.pow(v,2) + 1111.14*v - 616.868;
 };
 
@@ -6557,7 +6564,8 @@ window._atualizarPlato = function(id) {
 window._densComPlato = function(sg) {
     if (!sg) return '—';
     var p = window._sgToPlato(sg);
-    return p === null ? String(sg) : sg + ' (' + p.toFixed(1).replace('.', ',') + '°P)';
+    var nv = window._normDens(sg), txt = (nv >= 0.98 && nv <= 1.2) ? nv.toFixed(3) : String(sg);
+    return p === null ? txt : txt + ' (' + p.toFixed(1).replace('.', ',') + '°P)';
 };
 
 window._onBlurDens = function(id) {
@@ -8665,6 +8673,14 @@ function salvarFichaTecnicaERP() {
     if (!lote)   { R8.toast.aviso('Informe o número do lote.'); return; }
     if (!estilo) { R8.toast.aviso('Selecione um estilo.'); return; }
 
+    // Edição: confirma QUAL ficha está sendo gravada pelo lote de origem. O índice da lista
+    // pode ter mudado (sincronização em tempo real, outro aparelho incluindo/excluindo ficha)
+    // e a gravação cairia na ficha errada ou se perderia.
+    if (editandoFichaIdx !== null && window._editandoFichaLote) {
+        var _irReal = dadosERP.fichasTecnicas.findIndex(function(x){ return x && x.lote === window._editandoFichaLote; });
+        if (_irReal >= 0) editandoFichaIdx = _irReal;
+    }
+
     // Impedir lote duplicado em nova ficha
     if (editandoFichaIdx === null) {
         if (dadosERP.fichasTecnicas.some(function(f){ return f.lote === lote; })) {
@@ -8720,6 +8736,9 @@ function salvarFichaTecnicaERP() {
     if (editandoFichaIdx !== null) {
         var fichaAntiga = dadosERP.fichasTecnicas[editandoFichaIdx];
         var loteAntigo = fichaAntiga ? fichaAntiga.lote : null;
+        // Mantém campos que já existiam na ficha e não fazem parte do formulário (ex.: fichas
+        // criadas em versões anteriores) — o que está na tela sempre prevalece sobre o antigo.
+        if (fichaAntiga) ficha = Object.assign({}, fichaAntiga, ficha);
         if (!dadosERP.movimentacoesEstoque) dadosERP.movimentacoesEstoque = [];
 
         var baixasAnteriores = (fichaAntiga && fichaAntiga._baixasInsumos) || {};
@@ -9082,6 +9101,7 @@ window.abrirNovaFichaTecnicaERP = function() {
 };
 
 function _limparFormFicha() {
+    window._editandoFichaLote = null;
     window.insumosAdicionadosProducao   = [];
     window.etapasMosturaProducao        = [];
     window.adicoesLupuloProducao        = [];
@@ -9374,6 +9394,7 @@ window.excluirFichaERP=function(i){
 window.editarFichaERP=function(idx){
     let f=dadosERP.fichasTecnicas[idx];if(!f){R8.toast.erro('Ficha não encontrada.');return;}
     editandoFichaIdx=idx;
+    window._editandoFichaLote=f.lote||null;   // lote de origem: usado ao gravar para achar a ficha certa, mesmo que a lista mude
     irParaTelaERP('telaProcessoProducao');
     function set(id,val){let el=document.getElementById(id);if(el)el.value=val||'';}
     function setDens(id,val){let el=document.getElementById(id);if(el)el.value=val?window._normDens(val).toFixed(3):'';}
@@ -21674,6 +21695,161 @@ window._BREWBEER_HTML_B64 = "PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0icHQtQlIiPjxoZWF
         if (window.R8 && R8.toast) R8.toast.ok('Dados da Ficha enviados ao Brew Beer.');
     };
     window._bbColetarFicha = coletar;   // exposição para testes
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// SELETOR DE ESTILOS — PADRÃO ÚNICO (idêntico ao "Selecionar estilo" do Brew Beer)
+// A Ficha Técnica passa a escolher o estilo no mesmo painel do Brew Beer: busca por
+// nome ou apelido (IPA, Pilsner...), com faixas de OG, IBU e ABV, e a mesma lista de
+// estilos (BJCP). O <select id="producaoEstilo"> continua existindo (oculto), então
+// gravação, edição, importação de receita e demais fluxos seguem lendo o mesmo campo.
+// Qualquer valor já gravado numa ficha (inclusive de estilos antigos fora desta lista)
+// é preservado e mostrado ao reabrir — nunca volta em branco.
+// ══════════════════════════════════════════════════════════════════════════
+(function(){
+    // [chave, nome exibido, subtítulo] — gerado a partir da lista do Brew Beer
+    var ESTILOS = [["Altbier","Altbier","Também: Alt. OG 1.044 a 1.052, IBU 25 a 50, ABV 4.3 a 5.5%"],["Alternative Grain Beer (faixa ampla)","Alternative Grain Beer","OG 1.040 a 1.090, IBU 10 a 50, ABV 4 a 10%"],["Alternative Sugar Beer (faixa ampla)","Alternative Sugar Beer","OG 1.040 a 1.090, IBU 10 a 50, ABV 4 a 10%"],["American Amber Ale","American Amber Ale","Também: Amber Ale,Red Ale. OG 1.045 a 1.060, IBU 25 a 40, ABV 4.5 a 6.2%"],["American Barleywine","American Barleywine","Também: Barley Wine. OG 1.080 a 1.120, IBU 50 a 100, ABV 8 a 12%"],["American Brown Ale","American Brown Ale","Também: Brown Ale. OG 1.045 a 1.060, IBU 20 a 30, ABV 4.3 a 6.2%"],["American IPA","American IPA","Também: IPA,India Pale Ale,IPA Americana,West Coast IPA. OG 1.056 a 1.070, IBU 40 a 70, ABV 5.5 a 7.5%"],["American Lager","American Lager","Também: Lager Americana,Standard Lager. OG 1.040 a 1.050, IBU 8 a 18, ABV 4.2 a 5.3%"],["American Light Lager","American Light Lager","OG 1.028 a 1.040, IBU 8 a 12, ABV 2.8 a 4.2%"],["American Pale Ale (APA)","American Pale Ale (APA)","Também: APA,Pale Ale Americana,Pale Ale. OG 1.045 a 1.060, IBU 30 a 50, ABV 4.5 a 6.2%"],["American Porter","American Porter","Também: Robust Porter. OG 1.048 a 1.065, IBU 25 a 50, ABV 4.8 a 6.5%"],["American Stout","American Stout","OG 1.050 a 1.075, IBU 35 a 75, ABV 5 a 7%"],["American Strong Ale","American Strong Ale","OG 1.062 a 1.090, IBU 50 a 100, ABV 6.3 a 10%"],["American Wheat Beer","American Wheat Beer","Também: American Wheat,Trigo Americana. OG 1.040 a 1.055, IBU 15 a 30, ABV 4 a 5.5%"],["Australian Sparkling Ale","Australian Sparkling Ale","OG 1.038 a 1.050, IBU 20 a 35, ABV 4.5 a 6%"],["Autumn Seasonal Beer (faixa ampla)","Autumn Seasonal Beer","OG 1.045 a 1.075, IBU 10 a 40, ABV 4.5 a 8%"],["Baltic Porter","Baltic Porter","OG 1.060 a 1.090, IBU 20 a 40, ABV 6.5 a 9.5%"],["Belgian Blond Ale","Belgian Blond Ale","Também: Blonde Belga. OG 1.062 a 1.075, IBU 15 a 30, ABV 6 a 7.5%"],["Belgian Dark Strong Ale","Belgian Dark Strong Ale","Também: Quadrupel,Quad. OG 1.075 a 1.115, IBU 20 a 35, ABV 8 a 12%"],["Belgian Dubbel","Belgian Dubbel","Também: Dubbel. OG 1.062 a 1.075, IBU 15 a 25, ABV 6 a 7.6%"],["Belgian Golden Strong Ale","Belgian Golden Strong Ale","Também: Golden Strong,Duvel. OG 1.070 a 1.095, IBU 22 a 35, ABV 7.5 a 10.5%"],["Belgian IPA","Belgian IPA","Também: BIPA. OG 1.058 a 1.072, IBU 50 a 100, ABV 6.2 a 9.5%"],["Belgian Pale Ale","Belgian Pale Ale","OG 1.048 a 1.054, IBU 20 a 30, ABV 4.8 a 5.5%"],["Belgian Single","Belgian Single","Também: Trappist Single. OG 1.044 a 1.054, IBU 25 a 45, ABV 4.8 a 6%"],["Belgian Tripel","Belgian Tripel","Também: Tripel. OG 1.075 a 1.085, IBU 20 a 40, ABV 7.5 a 9.5%"],["Berliner Weisse","Berliner Weisse","Também: Berliner. OG 1.028 a 1.032, IBU 3 a 8, ABV 2.8 a 3.8%"],["Best Bitter","Best Bitter","Também: English Pale Ale,Bitter. OG 1.039 a 1.048, IBU 25 a 40, ABV 3.8 a 4.6%"],["Biere de Garde","Biere de Garde","Também: Bière de Garde. OG 1.060 a 1.080, IBU 18 a 28, ABV 6 a 8.5%"],["Black IPA","Black IPA","Também: Cascadian Dark Ale,CDA. OG 1.050 a 1.075, IBU 50 a 90, ABV 5.5 a 9%"],["Blonde Ale","Blonde Ale","Também: Golden Ale,Blond Ale. OG 1.038 a 1.054, IBU 15 a 28, ABV 3.8 a 5.5%"],["Brett Beer (faixa ampla)","Brett Beer","OG 1.040 a 1.090, IBU 0 a 40, ABV 3 a 10%"],["British Brown Ale","British Brown Ale","Também: Brown Ale. OG 1.040 a 1.052, IBU 20 a 30, ABV 4.2 a 5.4%"],["British Golden Ale","British Golden Ale","Também: Summer Ale,Golden Ale. OG 1.038 a 1.053, IBU 20 a 45, ABV 3.8 a 5%"],["British Strong Ale","British Strong Ale","OG 1.055 a 1.080, IBU 30 a 60, ABV 5.5 a 8%"],["Brown IPA","Brown IPA","OG 1.050 a 1.070, IBU 40 a 70, ABV 5.5 a 9%"],["Brut IPA","Brut IPA","OG 1.046 a 1.057, IBU 20 a 30, ABV 6 a 7.5%"],["Burton Ale","Burton Ale","OG 1.055 a 1.075, IBU 40 a 50, ABV 5 a 7.5%"],["California Common","California Common","Também: Steam Beer. OG 1.048 a 1.054, IBU 30 a 45, ABV 4.5 a 5.5%"],["Catharina Sour","Catharina Sour","Também: Sour de Frutas. OG 1.039 a 1.048, IBU 2 a 8, ABV 4 a 5.5%"],["Classic Style Smoked Beer (faixa ampla)","Classic Style Smoked Beer","OG 1.040 a 1.090, IBU 10 a 50, ABV 4 a 10%"],["Clone Beer (faixa ampla)","Clone Beer","OG 1.030 a 1.120, IBU 0 a 120, ABV 3 a 14%"],["Cream Ale","Cream Ale","OG 1.042 a 1.055, IBU 8 a 20, ABV 4.2 a 5.6%"],["Czech Amber Lager","Czech Amber Lager","OG 1.044 a 1.056, IBU 20 a 35, ABV 4.4 a 5.8%"],["Czech Dark Lager","Czech Dark Lager","OG 1.044 a 1.056, IBU 18 a 34, ABV 4.4 a 5.8%"],["Czech Pale Lager","Czech Pale Lager","OG 1.028 a 1.044, IBU 20 a 35, ABV 3 a 4.4%"],["Czech Premium Pale Lager","Czech Premium Pale Lager","Também: Bohemian Pilsner,Czech Pilsner. OG 1.044 a 1.060, IBU 30 a 45, ABV 4.2 a 5.8%"],["Dark Mild","Dark Mild","Também: Mild. OG 1.030 a 1.038, IBU 10 a 25, ABV 3 a 3.8%"],["Doppelbock","Doppelbock","Também: Double Bock. OG 1.072 a 1.112, IBU 16 a 26, ABV 7 a 10%"],["Dortmunder Export","Dortmunder Export","OG 1.048 a 1.056, IBU 23 a 29, ABV 5.1 a 6%"],["Double IPA (Imperial IPA)","Double IPA (Imperial IPA)","Também: DIPA,IIPA,Imperial IPA. OG 1.065 a 1.085, IBU 60 a 120, ABV 7.5 a 10%"],["Dunkles Bock","Dunkles Bock","OG 1.064 a 1.072, IBU 20 a 27, ABV 6.3 a 7.2%"],["Dunkles Weissbier","Dunkles Weissbier","Também: Dunkelweizen. OG 1.044 a 1.057, IBU 10 a 18, ABV 4.3 a 5.6%"],["Eisbock","Eisbock","OG 1.090 a 1.120, IBU 25 a 50, ABV 9 a 14%"],["English Barleywine","English Barleywine","Também: Barley Wine. OG 1.080 a 1.120, IBU 35 a 70, ABV 8 a 12%"],["English IPA","English IPA","Também: IPA Inglesa. OG 1.050 a 1.060, IBU 40 a 60, ABV 5 a 7.5%"],["English Porter","English Porter","Também: Porter,Brown Porter. OG 1.040 a 1.052, IBU 18 a 35, ABV 4 a 5.4%"],["Experimental Beer (faixa ampla)","Experimental Beer","OG 1.030 a 1.120, IBU 0 a 120, ABV 3 a 14%"],["Festbier","Festbier","Também: Oktoberfest. OG 1.050 a 1.057, IBU 18 a 25, ABV 5.2 a 6%"],["Flanders Red Ale","Flanders Red Ale","Também: Rodenbach. OG 1.048 a 1.057, IBU 10 a 25, ABV 4.6 a 6.5%"],["Foreign Extra Stout","Foreign Extra Stout","Também: Export Stout. OG 1.056 a 1.075, IBU 50 a 70, ABV 6.3 a 8%"],["Fruit Beer (faixa ampla)","Fruit Beer","OG 1.035 a 1.090, IBU 0 a 50, ABV 3 a 10%"],["Fruit Lambic","Fruit Lambic","OG 1.040 a 1.060, IBU 0 a 10, ABV 5 a 7%"],["Fruit and Spice Beer (faixa ampla)","Fruit and Spice Beer","OG 1.040 a 1.090, IBU 10 a 40, ABV 4 a 10%"],["German Leichtbier","German Leichtbier","Também: Leichtbier,Light Beer. OG 1.026 a 1.034, IBU 15 a 28, ABV 2.4 a 3.6%"],["German Pils","German Pils","Também: Pilsner,Pils,Pilsen. OG 1.044 a 1.050, IBU 22 a 40, ABV 4.4 a 5.2%"],["Gose","Gose","OG 1.036 a 1.056, IBU 5 a 12, ABV 4.2 a 4.8%"],["Gueuze","Gueuze","Também: Geuze. OG 1.040 a 1.060, IBU 0 a 10, ABV 5 a 8%"],["Helles Bock","Helles Bock","Também: Maibock. OG 1.064 a 1.072, IBU 23 a 35, ABV 6.3 a 7.4%"],["Imperial Stout","Imperial Stout","Também: RIS,Russian Imperial Stout. OG 1.080 a 1.115, IBU 50 a 90, ABV 8 a 12%"],["International Amber Lager","International Amber Lager","OG 1.042 a 1.055, IBU 8 a 25, ABV 4.6 a 6%"],["International Dark Lager","International Dark Lager","OG 1.044 a 1.056, IBU 8 a 20, ABV 4.2 a 6%"],["International Pale Lager","International Pale Lager","Também: Lager Internacional,Premium Lager. OG 1.042 a 1.050, IBU 18 a 25, ABV 4.6 a 6%"],["Irish Extra Stout","Irish Extra Stout","OG 1.052 a 1.062, IBU 35 a 50, ABV 5 a 6.5%"],["Irish Red Ale","Irish Red Ale","Também: Red Ale. OG 1.036 a 1.046, IBU 18 a 28, ABV 3.8 a 5%"],["Irish Stout","Irish Stout","Também: Dry Stout,Guinness. OG 1.036 a 1.044, IBU 25 a 45, ABV 3.8 a 5%"],["Italian Grape Ale (faixa ampla)","Italian Grape Ale","Também: IGA,Cerveja com uva. OG 1.045 a 1.080, IBU 10 a 30, ABV 5 a 9%"],["Kellerbier","Kellerbier","OG 1.045 a 1.054, IBU 20 a 35, ABV 4.7 a 5.4%"],["Kentucky Common","Kentucky Common","OG 1.044 a 1.055, IBU 15 a 30, ABV 4 a 5.5%"],["Kolsch","Kolsch","Também: Kölsch. OG 1.044 a 1.050, IBU 18 a 30, ABV 4.4 a 5.2%"],["Lambic","Lambic","OG 1.040 a 1.054, IBU 0 a 10, ABV 5 a 6.5%"],["Lichtenhainer","Lichtenhainer","OG 1.032 a 1.040, IBU 5 a 12, ABV 3.5 a 4.7%"],["London Brown Ale","London Brown Ale","OG 1.033 a 1.038, IBU 15 a 20, ABV 3.3 a 4.2%"],["Marzen","Marzen","Também: Oktoberfest,Märzen. OG 1.054 a 1.060, IBU 18 a 24, ABV 5.6 a 6.3%"],["Mixed-Fermentation Sour Beer (faixa ampla)","Mixed-Fermentation Sour Beer","OG 1.040 a 1.072, IBU 0 a 25, ABV 4 a 9%"],["Mixed-Style Beer (faixa ampla)","Mixed-Style Beer","OG 1.030 a 1.120, IBU 0 a 120, ABV 3 a 14%"],["Munich Dunkel","Munich Dunkel","Também: Dunkel. OG 1.048 a 1.056, IBU 18 a 28, ABV 4.5 a 5.6%"],["Munich Helles","Munich Helles","Também: Helles. OG 1.044 a 1.048, IBU 16 a 22, ABV 4.7 a 5.4%"],["New England IPA","New England IPA","Também: NEIPA,Hazy IPA,Juicy IPA. OG 1.060 a 1.070, IBU 25 a 60, ABV 6 a 9%"],["Oatmeal Stout","Oatmeal Stout","OG 1.045 a 1.065, IBU 25 a 40, ABV 4.2 a 5.9%"],["Old Ale","Old Ale","OG 1.055 a 1.088, IBU 30 a 60, ABV 5.5 a 9%"],["Ordinary Bitter","Ordinary Bitter","Também: Bitter. OG 1.030 a 1.039, IBU 25 a 35, ABV 3.2 a 3.8%"],["Oud Bruin","Oud Bruin","OG 1.040 a 1.074, IBU 20 a 25, ABV 4 a 8%"],["Piwo Grodziskie","Piwo Grodziskie","OG 1.028 a 1.032, IBU 20 a 35, ABV 2.5 a 3.3%"],["Pre-Prohibition Lager","Pre-Prohibition Lager","OG 1.044 a 1.060, IBU 25 a 40, ABV 4.5 a 6%"],["Pre-Prohibition Porter","Pre-Prohibition Porter","OG 1.046 a 1.060, IBU 20 a 30, ABV 4.5 a 6%"],["Rauchbier","Rauchbier","Também: Smoked Beer,Defumada. OG 1.048 a 1.057, IBU 20 a 30, ABV 4.8 a 6%"],["Red IPA","Red IPA","OG 1.050 a 1.070, IBU 40 a 70, ABV 5.5 a 9%"],["Roggenbier","Roggenbier","Também: Rye Beer. OG 1.046 a 1.056, IBU 10 a 20, ABV 4.5 a 6%"],["Rye IPA","Rye IPA","Também: RIPA,IPA de centeio. OG 1.050 a 1.075, IBU 50 a 75, ABV 5.5 a 8%"],["Sahti","Sahti","OG 1.076 a 1.120, IBU 7 a 15, ABV 7 a 11%"],["Saison","Saison","Também: Farmhouse Ale. OG 1.048 a 1.065, IBU 20 a 35, ABV 3.5 a 9.5%"],["Schwarzbier","Schwarzbier","Também: Black Lager. OG 1.046 a 1.052, IBU 20 a 35, ABV 4.4 a 5.4%"],["Scottish Export","Scottish Export","Também: 80 shilling. OG 1.040 a 1.060, IBU 15 a 30, ABV 3.9 a 6%"],["Scottish Heavy","Scottish Heavy","Também: 70 shilling. OG 1.035 a 1.040, IBU 10 a 20, ABV 3.3 a 3.9%"],["Scottish Light","Scottish Light","Também: 60 shilling. OG 1.030 a 1.035, IBU 10 a 20, ABV 2.5 a 3.3%"],["Session IPA","Session IPA","Também: SIPA. OG 1.037 a 1.046, IBU 30 a 50, ABV 3 a 5%"],["Specialty Fruit Beer (faixa ampla)","Specialty Fruit Beer","OG 1.040 a 1.100, IBU 0 a 60, ABV 3 a 12%"],["Specialty Smoked Beer (faixa ampla)","Specialty Smoked Beer","OG 1.040 a 1.100, IBU 8 a 60, ABV 4 a 12%"],["Specialty Wood-Aged Beer (faixa ampla)","Specialty Wood-Aged Beer","OG 1.040 a 1.110, IBU 10 a 70, ABV 4 a 14%"],["Spice Herb Vegetable Beer (faixa ampla)","Spice Herb Vegetable Beer","OG 1.040 a 1.090, IBU 10 a 50, ABV 3 a 10%"],["Strong Bitter","Strong Bitter","Também: ESB,Extra Special Bitter. OG 1.046 a 1.060, IBU 30 a 50, ABV 4.6 a 6.2%"],["Sweet Stout","Sweet Stout","Também: Milk Stout. OG 1.044 a 1.060, IBU 20 a 40, ABV 4 a 6%"],["Tropical Stout","Tropical Stout","OG 1.056 a 1.075, IBU 30 a 50, ABV 5.5 a 8%"],["Vienna Lager","Vienna Lager","Também: Viena. OG 1.048 a 1.055, IBU 18 a 30, ABV 4.7 a 5.5%"],["Wee Heavy","Wee Heavy","Também: Scotch Ale. OG 1.070 a 1.130, IBU 17 a 35, ABV 6.5 a 10%"],["Weissbier (Hefeweizen)","Weissbier (Hefeweizen)","Também: Hefeweizen,Weizen,Weiss,Cerveja de Trigo. OG 1.044 a 1.053, IBU 8 a 15, ABV 4.3 a 5.6%"],["Weizenbock","Weizenbock","OG 1.064 a 1.090, IBU 15 a 30, ABV 6.5 a 9%"],["Wheatwine","Wheatwine","OG 1.080 a 1.120, IBU 30 a 60, ABV 8 a 12%"],["White IPA","White IPA","Também: WIPA. OG 1.056 a 1.065, IBU 40 a 70, ABV 5.5 a 7%"],["Wild Specialty Beer (faixa ampla)","Wild Specialty Beer","OG 1.040 a 1.090, IBU 0 a 50, ABV 3 a 10%"],["Winter Seasonal Beer (faixa ampla)","Winter Seasonal Beer","OG 1.055 a 1.110, IBU 20 a 50, ABV 6 a 12%"],["Witbier","Witbier","Também: Wit,Belgian White,Cerveja Branca. OG 1.044 a 1.052, IBU 8 a 20, ABV 4.5 a 5.5%"],["Wood-Aged Beer (faixa ampla)","Wood-Aged Beer","OG 1.040 a 1.110, IBU 10 a 70, ABV 4 a 12%"]];
+
+    function nz(s){ return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    function achar(v){
+        var q = nz(v).trim(); if (!q) return null;
+        for (var i = 0; i < ESTILOS.length; i++) if (nz(ESTILOS[i][1]) === q || nz(ESTILOS[i][0]) === q) return ESTILOS[i];
+        return null;
+    }
+    // lista filtrada exatamente como no Brew Beer: busca no nome + subtítulo, sem acento
+    function filtrar(texto){
+        var q = nz(texto);
+        return ESTILOS.filter(function(x){ return nz(x[1] + ' ' + x[2]).indexOf(q) !== -1; });
+    }
+    function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+    // ── fontes e estilos (iguais aos do Brew Beer) ──────────────────────
+    function injetarEstilos(){
+        if (document.getElementById('r8EpCss')) return;
+        var lk = document.createElement('link');
+        lk.rel = 'stylesheet';
+        lk.href = 'https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Inter:wght@400;600&family=Mulish:ital,wght@0,400;0,600;1,400&display=swap';
+        document.head.appendChild(lk);
+        var st = document.createElement('style'); st.id = 'r8EpCss';
+        st.textContent =
+'#r8EstiloPicker{--bg:#eef1ec;--c:#fbfcfa;--t:#1c2620;--m:#66746a;--a:#2f5d3a;--a2:#dfeadd;--bt:#fff;--b:#d9e0d5;--in:#143a9a;--ph:rgba(120,120,120,.28);position:fixed;inset:0;z-index:100050;background:var(--bg);color:var(--t);display:flex;flex-direction:column;gap:10px;padding:12px;font:15px/1.4 Inter,system-ui,sans-serif;box-sizing:border-box}' +
+'#r8EstiloPicker *{box-sizing:border-box}' +
+'#r8EstiloPicker[hidden]{display:none}' +
+'@media(prefers-color-scheme:dark){#r8EstiloPicker{--bg:#0e1511;--c:#16201a;--t:#e8efe9;--m:#93a599;--a:#7cbb8e;--a2:#213328;--bt:#0e1511;--b:#27372d;--in:#a9c0ff;--ph:rgba(185,185,185,.3)}}' +
+'#r8EstiloPicker .r8ep-ph{display:flex;justify-content:space-between;align-items:center;font:600 17px Oswald,"Arial Narrow",sans-serif;text-transform:uppercase;color:var(--a)}' +
+'#r8EstiloPicker .r8ep-fechar{font:600 15px Inter,system-ui,sans-serif;color:var(--t);background:var(--c);border:1px solid var(--b);border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer;margin:0}' +
+'#r8EstiloBusca{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--b);border-radius:10px;background:var(--bg);text-align:center;font-family:"Ocean Sans",Mulish,system-ui,sans-serif;font-size:16px;color:var(--in);-webkit-text-fill-color:var(--in)}' +
+'#r8EstiloBusca::placeholder{font-family:"Ocean Sans",Mulish,system-ui,sans-serif;font-style:italic;font-weight:400;color:var(--ph);-webkit-text-fill-color:var(--ph);text-align:center}' +
+'#r8EstiloBusca:focus-visible{outline:2px solid var(--a);outline-offset:1px}' +
+'#r8EstiloLista{overflow:auto;flex:1}' +
+'#r8EstiloLista .it{position:relative;padding:12px;border:1px solid var(--b);border-radius:10px;margin-bottom:8px;background:var(--c);cursor:pointer}' +
+'#r8EstiloLista .it.on{border:2px solid var(--a);background:var(--a2)}' +
+'#r8EstiloLista .it b{display:block;font:600 14px/1.25 Inter,system-ui,sans-serif;color:var(--t)}' +
+'#r8EstiloLista .it small{display:block;font:12px/1.3 Inter,system-ui,sans-serif;color:var(--m);margin-top:2px}' +
+'#r8EstiloLista p{color:var(--m);text-align:center}' +
+// botão que substitui o <select> na Ficha (mesma moldura dos demais campos)
+'.campo-linha .r8-estilo-btn{display:block;width:100%;padding:var(--campo-pad);border:var(--campo-border);border-radius:var(--campo-radius);font-size:var(--campo-font);font-family:var(--input-font-family);color:var(--input-color);background:#fff url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'9\'%3E%3Cpath d=\'M1 1l6 6 6-6\' fill=\'none\' stroke=\'%2366746a\' stroke-width=\'2\'/%3E%3C/svg%3E") no-repeat right 14px center;padding-right:36px;text-align:left;cursor:pointer;min-height:44px;font-weight:600}' +
+'.campo-linha .r8-estilo-btn.vazio{font-weight:400;color:#94a3b8}';
+        document.head.appendChild(st);
+    }
+
+    // ── painel (criado uma vez) ─────────────────────────────────────────
+    var painel = null, selAlvo = null;
+    function montarPainel(){
+        if (painel) return painel;
+        injetarEstilos();
+        painel = document.createElement('div');
+        painel.id = 'r8EstiloPicker'; painel.hidden = true;
+        painel.innerHTML = '<div class="r8ep-ph"><span>Selecionar estilo</span><button type="button" class="r8ep-fechar">Fechar</button></div>' +
+            '<input id="r8EstiloBusca" type="search" placeholder="Ex.: IPA, Pilsner, Candy Sugar, Cascade" autocomplete="off">' +
+            '<div id="r8EstiloLista"></div>';
+        document.body.appendChild(painel);
+        painel.querySelector('.r8ep-fechar').addEventListener('click', fechar);
+        painel.querySelector('#r8EstiloBusca').addEventListener('input', desenhar);
+        painel.querySelector('#r8EstiloLista').addEventListener('click', function(e){
+            var it = e.target.closest ? e.target.closest('.it') : null;
+            if (!it || !selAlvo) return;
+            escolher(it.getAttribute('data-v'));
+        });
+        return painel;
+    }
+    function desenhar(){
+        var p = painel; if (!p) return;
+        var q = p.querySelector('#r8EstiloBusca').value, atual = selAlvo ? selAlvo.value : '';
+        var lista = filtrar(q);
+        p.querySelector('#r8EstiloLista').innerHTML = lista.map(function(x){
+            return '<div class="it' + (nz(x[1]) === nz(atual) || nz(x[0]) === nz(atual) ? ' on' : '') + '" data-v="' + esc(x[1]) + '"><b>' + esc(x[1]) + '</b><small>' + esc(x[2]) + '</small></div>';
+        }).join('') || '<p>Nada encontrado.</p>';
+    }
+    function abrir(sel){
+        selAlvo = sel || document.getElementById('producaoEstilo'); if (!selAlvo) return;
+        montarPainel();
+        painel.querySelector('#r8EstiloBusca').value = '';
+        desenhar();
+        painel.hidden = false;
+        try { painel.querySelector('#r8EstiloBusca').focus(); } catch (e) {}
+    }
+    function fechar(){ if (painel) painel.hidden = true; }
+    function escolher(v){
+        if (selAlvo) {
+            selAlvo.value = v;
+            try { selAlvo.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+        }
+        fechar();
+    }
+
+    // ── <select id="producaoEstilo"> oculto + botão visível ─────────────
+    function garantirOpcao(sel, v){
+        if (!v) return;
+        for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === v) return;
+        var o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+    }
+    function atualizarBotao(sel){
+        var b = sel._r8btn; if (!b) return;
+        var v = sel._r8v || '';
+        b.textContent = v || 'Selecione o Estilo';
+        b.classList.toggle('vazio', !v);
+    }
+    function instalar(sel){
+        if (!sel || sel._r8ep) return;
+        sel._r8ep = true;
+        sel._r8v = sel.value || '';
+        // aceita QUALQUER valor (inclusive de fichas antigas) — o valor nunca se perde por faltar na lista
+        Object.defineProperty(sel, 'value', {
+            configurable: true,
+            get: function(){ return this._r8v || ''; },
+            set: function(v){ v = (v == null ? '' : String(v)); this._r8v = v; garantirOpcao(this, v); atualizarBotao(this); }
+        });
+        sel.required = false;
+        sel.style.display = 'none';
+        var b = document.createElement('button');
+        b.type = 'button'; b.id = 'producaoEstiloBtn'; b.className = 'r8-estilo-btn';
+        b.addEventListener('click', function(){ abrir(sel); });
+        sel.parentNode.insertBefore(b, sel.nextSibling);
+        sel._r8btn = b;
+        injetarEstilos();
+        atualizarBotao(sel);
+    }
+
+    // substitui a lista antiga (estilosData) pela lista única do Brew Beer
+    window.popularSelectEstiloProducao = function(){
+        var s = document.getElementById('producaoEstilo'); if (!s) return;
+        instalar(s);
+        var atual = s.value;
+        s.innerHTML = '';
+        var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione o Estilo'; s.appendChild(o0);
+        ESTILOS.forEach(function(x){ var o = document.createElement('option'); o.value = x[1]; o.textContent = x[1]; s.appendChild(o); });
+        garantirOpcao(s, atual);
+        atualizarBotao(s);
+    };
+
+    // o formulário só existe depois que o ERP carrega — instala assim que aparecer
+    var _poll = setInterval(function(){
+        var s = document.getElementById('producaoEstilo');
+        if (s) { try { window.popularSelectEstiloProducao(); } catch (e) {} clearInterval(_poll); }
+    }, 300);
+
+    window._r8Estilos = { lista: ESTILOS, filtrar: filtrar, achar: achar, abrir: abrir, instalar: instalar };   // exposição para testes
 })();
 
 </script>
