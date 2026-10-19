@@ -998,11 +998,14 @@
             font-family: 'Bebas Neue', sans-serif;
             font-size: 36px;
             line-height: 1.05;
-            letter-spacing: 3px;
+            letter-spacing: .083em;
             color: #9a6f1b;
             text-transform: uppercase;
             margin: 2px 0 14px;
-            overflow-wrap: anywhere;
+            white-space: nowrap;        /* sempre em uma única linha */
+            overflow: hidden;
+            text-overflow: ellipsis;    /* só aparece se nem no tamanho mínimo couber */
+            min-width: 0;
         }
         .ficha-arq-titulo {
             grid-area: titulo;
@@ -9257,6 +9260,7 @@ window.atualizarListaFichasERP = function() {
             + '<div id="insumosFicha'+i+'" style="display:none;margin-top:8px">' + _htmlInsumosDoLote(f) + '</div>'
             + '</div>';
     }).join('');
+    if (typeof window._ajustarNomesFichas === 'function') window._ajustarNomesFichas(c);
 };
 // Estilo visual por tipo de insumo — reutilizado nos 3 sub-menus de
 // Estoque - Insumos (Insumo por Lote, Movimentações, Saldo) para manter
@@ -21896,6 +21900,55 @@ window._BREWBEER_HTML_B64 = "PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0icHQtQlIiPjxoZWF
     }, 300);
 
     window._r8Estilos = { lista: ESTILOS, filtrar: filtrar, achar: achar, abrir: abrir, instalar: instalar };   // exposição para testes
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// FICHAS ARQUIVADAS — nome da cerveja sempre em UMA linha
+// O nome começa em 36 px e a fonte é reduzida, na proporção do texto, até caber na
+// largura do card (mínimo de 11 px; abaixo disso aparece reticências). Reajusta ao girar
+// a tela, ao carregar a fonte e ao abrir a tela de Fichas Arquivadas.
+// ══════════════════════════════════════════════════════════════════════════
+(function(){
+    var MAX = 36, MIN = 11, espera = null;
+    function ajustarUm(el){
+        var larg = el.clientWidth;
+        if (!larg) return false;                       // tela oculta: ajusta quando aparecer
+        var f = MAX;
+        el.style.fontSize = f + 'px';
+        if (el.scrollWidth > larg) {
+            f = Math.max(MIN, Math.floor(f * larg / el.scrollWidth));   // estimativa pela proporção
+            el.style.fontSize = f + 'px';
+            while (el.scrollWidth > el.clientWidth && f > MIN) { f--; el.style.fontSize = f + 'px'; }
+        }
+        return true;
+    }
+    window._ajustarNomesFichas = function(raiz){
+        var base = raiz || document;
+        var lista = base.querySelectorAll ? base.querySelectorAll('.ficha-arq-nome') : [];
+        var pendente = false;
+        for (var i = 0; i < lista.length; i++) if (!ajustarUm(lista[i])) pendente = true;
+        // reforço: depois do layout, quando a fonte Bebas terminar de carregar e se a tela ainda estava oculta
+        if (!espera) {
+            espera = setTimeout(function(){ espera = null; window._ajustarNomesFichasAgora(); }, pendente ? 400 : 150);
+        }
+    };
+    window._ajustarNomesFichasAgora = function(){
+        var lista = document.querySelectorAll('.ficha-arq-nome');
+        for (var i = 0; i < lista.length; i++) ajustarUm(lista[i]);
+    };
+    window.addEventListener('resize', function(){ window._ajustarNomesFichasAgora(); });
+    try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ window._ajustarNomesFichasAgora(); }); } catch (e) {}
+    var original = window.irParaTelaERP;
+    if (typeof original === 'function' && !original._fitNomeEnvolvida) {
+        var nova = function(id){
+            var r = original.apply(this, arguments);
+            if (id === 'telaFichasArquivadas') { setTimeout(window._ajustarNomesFichasAgora, 60); setTimeout(window._ajustarNomesFichasAgora, 400); }
+            return r;
+        };
+        nova._fitNomeEnvolvida = true;
+        nova._bbEnvolvida = original._bbEnvolvida;   // preserva a marca do envoltório anterior (card do Brew Beer)
+        window.irParaTelaERP = nova;
+    }
 })();
 
 </script>
