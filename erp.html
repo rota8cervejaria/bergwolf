@@ -13306,7 +13306,7 @@ function gerarPDFFichaLayout(f,filename){
     // Insumos Utilizados (largura total)
     const _fixoInsumos=SECTIT;
     const _varInsumos=BASE_LHH+Math.max(_insCount,1)*BASE_LH+BASE_GAP;
-    // Mosturação / Perfil Sensorial (lado a lado): o quadro de Perfil Sensorial tem altura
+    // Mosturação / Anotações Técnicas (lado a lado): o quadro de Anotações Técnicas tem altura
     // mínima de 28mm que não compacta — tratado como bloco fixo para não subestimar o espaço real
     const _fixoMost=30;
     // Lúpulos (largura total)
@@ -13686,7 +13686,7 @@ function gerarPDFFichaLayout(f,filename){
     cardBorda(C1X,insumoCardStartY,cW,yy-insumoCardStartY);
     yBot=yy+GAP;
 
-    // ══ MOSTURAÇÃO + PERFIL SENSORIAL (lado a lado) ══
+    // ══ MOSTURAÇÃO + ANOTAÇÕES TÉCNICAS (lado a lado) ══
     if(yBot+20>PAGE_BOTTOM){ doc.addPage(); yBot=10; }
     let yMostStart=yBot;
     cardY=yBot;
@@ -13712,39 +13712,13 @@ function gerarPDFFichaLayout(f,filename){
     let yMostEnd=yy;
     cardBorda(C1X,cardY,C1W,yMostEnd-cardY);
 
-    // CARACTERÍSTICAS E PERFIL SENSORIAL
+    // ANOTAÇÕES TÉCNICAS (conteúdo do campo "Anotações Técnicas" da Ficha Técnica)
     let anotCardY=yMostStart;
-    let ya=secTit('Características e Perfil Sensorial',anotCardY,[50,55,65],C2X,C2W);
+    let ya=secTit('Anotações Técnicas',anotCardY,[50,55,65],C2X,C2W);
     let anotH=Math.max(yMostEnd-ya,28);
     bloco(C2X,ya,C2W,anotH,250,252,245,null);
     doc.setFillColor(...D);doc.setDrawColor(...D);doc.rect(C2X,ya,2.5,anotH,'FD');
-    var _estiloInfo=window._buscarEstiloInfo?window._buscarEstiloInfo(f.estilo||''):null;
-    var _textoCaract='';
-    if(f.caracteristicasPersonalizadas&&f.caracteristicasPersonalizadas.trim()){
-        // Descrição específica deste lote (preenchida no Processo de
-        // Produção) — usada no lugar da descrição padrão do estilo,
-        // exatamente como está, sem reformatação.
-        _textoCaract=f.caracteristicasPersonalizadas.trim();
-    }else if(_estiloInfo){
-        function _ap(s){s=(s||'').trim();return(s&&!/[.!?]$/.test(s))?s+'.':s;}
-        function _frases(txt){return((txt||'').match(/[^.!?]+[.!?]+/g)||[]).map(function(f){return _ap(f);}).filter(function(f){return f.trim();});}
-        var _fc=_frases(_estiloInfo.caracteristicas);
-        var _fs=_frases(_estiloInfo.sensorial);
-        var _fTodas=_fc.concat(_fs);
-        if(!_fTodas.length)_textoCaract=_ap(_estiloInfo.caracteristicas||_estiloInfo.sensorial||'');
-        else if(_fTodas.length<=2)_textoCaract=_fTodas.join(' ');
-        else{
-            var _partes=[_fc.length>0?_fc[0]:_fs[0]];
-            _fc.slice(1).forEach(function(f){_partes.push(f);});
-            _fs.forEach(function(f,i){if(i!==Math.floor((_fs.length-1)/2)&&i!==_fs.length-1)_partes.push(f);});
-            var _mei=_fs.length>0?_fs[Math.floor((_fs.length-1)/2)]:_fTodas[Math.floor((_fTodas.length-1)/2)];
-            var _fim=_fs.length>0?_fs[_fs.length-1]:_fTodas[_fTodas.length-1];
-            if(_mei!==_partes[0])_partes.push(_mei);
-            if(_fim!==_mei&&_fim!==_partes[0])_partes.push(_fim);
-            _textoCaract=_partes.join(' ');
-        }
-    }
-    if(!_textoCaract&&f.anotacoes)_textoCaract=f.anotacoes;
+    var _textoCaract=(f.anotacoes||'').toString().trim();
     if(_textoCaract&&_textoCaract.trim()){
         doc.setTextColor(20,25,40);doc.setFontSize(7);doc.setFont('helvetica','normal');
         var _padL=5.5,_padR=4,_padT=5,_padB=4;
@@ -13769,7 +13743,7 @@ function gerarPDFFichaLayout(f,filename){
         });
     }else{
         doc.setTextColor(190,195,200);doc.setFontSize(7.5);doc.setFont('helvetica','italic');
-        doc.text('Características do estilo...',C2X+C2W/2,ya+12,{align:'center'});
+        doc.text('Sem anotações técnicas.',C2X+C2W/2,ya+12,{align:'center'});
     }
     cardBorda(C2X,anotCardY,C2W,ya+anotH-anotCardY);
     yBot=Math.max(yMostEnd,ya+anotH)+GAP;
