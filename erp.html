@@ -8191,6 +8191,9 @@ window._excluirItemProducao = function(containerId, i) {
             if (containerId==='listaEnvaseProducao' && itemRemovido && itemRemovido.embalagemCodigo) {
                 window._liberarBarrilPorCodigo(itemRemovido.embalagemCodigo); // devolve o barril como Disponível
             }
+            if (containerId==='listaTrasfegaProducao' && itemRemovido && itemRemovido.tipoTransfega==='barril' && itemRemovido.barrilDestino && !_barrilReferenciado(itemRemovido.barrilDestino, itemRemovido)) {
+                window._liberarBarrilPorCodigo(itemRemovido.barrilDestino); // destino da trasfega removida volta a Disponível
+            }
             arr.splice(i,1);
             _renderByContainer(containerId);
         }
@@ -8232,6 +8235,17 @@ window._editarItemProducao = function(containerId, i) {
         document.getElementById('producaoTrasfegaData').value=item.data||'';
         document.getElementById('producaoTrasfegaVolume').value=item.volume||'';
         document.getElementById('producaoTrasfegaTemp').value=item.temp||'';
+        _resetFormTrasfegaBarril();
+        if(item.tipoTransfega==='barril'){
+            window._trasfegaDestinoExtra=item.barrilDestino||'';
+            document.getElementById('producaoTrasfegaTipo').value='barril'; _onTrasfegaTipoChange();
+            document.getElementById('producaoTrasfegaBarrilOrigem').value=item.barrilOrigem||''; _onTrasfegaBarrilOrigemChange();
+            document.getElementById('producaoTrasfegaDestino').value=item.destinoTipo||'barril';
+            document.getElementById('producaoTrasfegaLoteModo').value=item.loteModo||'mesmo'; _onTrasfegaDestinoChange();
+            if(item.destinoTipo==='barril'){ var _sd=document.getElementById('producaoTrasfegaBarrilDestino'); if(_sd){ if(!Array.prototype.some.call(_sd.options,function(o){return o.value===item.barrilDestino;})){ var _o=document.createElement('option'); _o.value=item.barrilDestino; _o.textContent=item.barrilDestino+' — '+(item.barrilDestinoDescricao||''); _sd.appendChild(_o);} _sd.value=item.barrilDestino||''; } }
+            document.getElementById('producaoTrasfegaNovoLote').value=item.loteDestino||'';
+            document.getElementById('producaoTrasfegaNovoEstilo').value=item.estiloDestino||'';
+        }
         mostrarFormERP('formTrasfegaProducao');
     } else if(containerId==='listaMaturacaoProducao'){
         document.getElementById('maturacaoData').value=item.data||'';
@@ -8364,7 +8378,12 @@ function _renderListaLeveduras(){
     });
 }
 function _renderListaFermentacao(){ _renderItemProducao(window.medicoesFermentacaoProducao,'listaFermentacaoProducao','#f8fafc',function(m){return'<strong>'+formatarDataHora(m.dataHora)+'</strong> — Dens: '+window._densComPlato(m.densidade)+' | pH: '+m.ph+' | Temp: '+m.temp+'°C';}); }
-function _renderListaTrasfega(){ _renderItemProducao(window.trasfegasProducao,'listaTrasfegaProducao','#f8fafc',function(t){return formatarData(t.data)+' — Vol: '+t.volume+'L | Temp: '+t.temp+'°C';}); }
+function _renderListaTrasfega(){ _renderItemProducao(window.trasfegasProducao,'listaTrasfegaProducao','#f8fafc',function(t){
+    var extra='';
+    if(t.tipoTransfega==='barril'){
+        extra=' <small style="color:#7a5a14">· do barril '+R8.esc(t.barrilOrigem||'')+' → '+(t.destinoTipo==='barril'?'barril '+R8.esc(t.barrilDestino||''):'tanque')+(t.loteModo==='novo'?' (novo lote '+R8.esc(t.loteDestino||'')+(t.estiloDestino?' — '+R8.esc(t.estiloDestino):'')+')':' (mesmo lote)')+'</small>';
+    }
+    return formatarData(t.data)+' — Vol: '+t.volume+'L | Temp: '+t.temp+'°C'+extra;}); }
 function _renderListaMaturacao(){ _renderItemProducao(window.maturacoesMedicaoProducao,'listaMaturacaoProducao','#f8fafc',function(m){return formatarData(m.data)+' — Temp: '+m.temp+'°C | Pressão: '+m.pressao+'bar'+(m.obs?' | '+m.obs:'');}); }
 function _renderListaPurga(){ _renderItemProducao(window.purgasProducao,'listaPurgaProducao','#f8fafc',function(p){return formatarData(p.data)+' — Vol: '+p.volume+'L'+(p.obs?' | '+p.obs:'');}); }
 
@@ -8450,14 +8469,119 @@ window.salvarFermentacaoERP=function(){
     _renderListaFermentacao();fecharFormERP('formFermentacaoProducao');
 };
 
+// ── TRASFEGA DE BARRIL ARMAZENADO (baixa no lote de origem, entrada no destino) ──
+window._trasfegaBarrisOrigem = function(){
+    var ign = (typeof _editSecaoProducao!=='undefined' && _editSecaoProducao==='listaTrasfegaProducao' && _editIdxProducao!==null) ? _editIdxProducao : -1;
+    var lista = (typeof _envaseBarrisOrigem==='function') ? _envaseBarrisOrigem(-1, ign) : [];
+    return lista;
+};
+window._popularTrasfegaBarrisOrigem = function(){
+    var sel=document.getElementById('producaoTrasfegaBarrilOrigem'); if(!sel) return;
+    var atual=sel.value; var lista=_trasfegaBarrisOrigem(); window._trasfegaBarrisCache=lista;
+    var opts=['<option value="">— Selecione o barril —</option>'];
+    lista.forEach(function(b){ opts.push('<option value="'+R8.esc(b.codigo)+'">'+R8.esc(b.codigo)+(b.descricao?' — '+R8.esc(b.descricao):'')+' (restam '+b.saldo.toFixed(1)+' L)</option>'); });
+    if(!lista.length) opts[0]='<option value="">Nenhum barril deste lote com saldo em estoque</option>';
+    sel.innerHTML=opts.join('');
+    if(atual && lista.some(function(b){return b.codigo===atual;})) sel.value=atual;
+    _onTrasfegaBarrilOrigemChange();
+};
+window._onTrasfegaBarrilOrigemChange = function(){
+    var info=document.getElementById('trasfegaBarrilSaldo'); if(!info) return;
+    var cod=document.getElementById('producaoTrasfegaBarrilOrigem')?.value||'';
+    var b=(window._trasfegaBarrisCache||[]).find(function(x){return x.codigo===cod;});
+    var vol=parseFloat(document.getElementById('producaoTrasfegaVolume')?.value)||0;
+    info.innerHTML = b ? ('Saldo no barril: <b>'+b.saldo.toFixed(1)+' L</b>'+(vol>0?' → ficará com <b>'+Math.max(0,b.saldo-vol).toFixed(1)+' L</b>':'')) : '';
+};
+window._popularTrasfegaBarrisDestino = function(){
+    var sel=document.getElementById('producaoTrasfegaBarrilDestino'); if(!sel) return;
+    var atual=sel.value, extra=window._trasfegaDestinoExtra||'';
+    var opts=['<option value="">— Selecione o barril —</option>'];
+    (dadosERP.barris||[]).forEach(function(b){
+        if(!b.codigo || _envaseCategoriaPorTipo(b.tipo)!=='Barril') return;
+        var bloq=(b.status==='Em Uso'||b.status==='Aguardando Sanitização') && b.codigo!==extra;
+        if(bloq) return;
+        opts.push('<option value="'+R8.esc(b.codigo)+'">'+R8.esc(b.codigo)+' — '+R8.esc(b.descricao||b.tipo||'')+(b.capacidade?' ('+R8.esc(b.capacidade)+')':'')+'</option>');
+    });
+    sel.innerHTML=opts.join('');
+    if(atual) sel.value=atual;
+};
+window._onTrasfegaDestinoChange = function(){
+    var dest=document.getElementById('producaoTrasfegaDestino')?.value||'barril';
+    var modo=document.getElementById('producaoTrasfegaLoteModo')?.value||'mesmo';
+    var wb=document.getElementById('wrapTrasfegaBarrilDestino'); if(wb) wb.style.display=(dest==='barril')?'':'none';
+    var wn=document.getElementById('wrapTrasfegaNovoLote'); if(wn) wn.style.display=(modo==='novo')?'':'none';
+    if(modo==='novo'){
+        var dl=document.getElementById('listaLotesTrasfega'), atualL=document.getElementById('producaoLote')?.value||'';
+        if(dl) dl.innerHTML=(dadosERP.fichasTecnicas||[]).filter(function(f){return f.lote&&f.lote!==atualL;}).map(function(f){return '<option value="'+R8.esc(f.lote)+'">'+R8.esc(f.estilo||'')+'</option>';}).join('');
+    }
+    if(dest==='barril') _popularTrasfegaBarrisDestino();
+};
+window._onTrasfegaTipoChange = function(){
+    var t=document.getElementById('producaoTrasfegaTipo')?.value||'';
+    var w=document.getElementById('wrapTrasfegaBarril'); if(w) w.style.display=(t==='barril')?'':'none';
+    if(t==='barril'){ _popularTrasfegaBarrisOrigem(); _onTrasfegaDestinoChange(); }
+};
+window._resetFormTrasfegaBarril = function(){
+    ['producaoTrasfegaTipo','producaoTrasfegaBarrilOrigem','producaoTrasfegaBarrilDestino','producaoTrasfegaNovoLote','producaoTrasfegaNovoEstilo'].forEach(function(id){var e=document.getElementById(id); if(e) e.value='';});
+    var d=document.getElementById('producaoTrasfegaDestino'); if(d) d.value='barril';
+    var m=document.getElementById('producaoTrasfegaLoteModo'); if(m) m.value='mesmo';
+    window._trasfegaDestinoExtra='';
+    _onTrasfegaTipoChange(); _onTrasfegaDestinoChange();
+};
+// Um barril só pode ser liberado se nenhuma outra ficha/trasfega ainda o usa
+window._barrilReferenciado = function(cod, ignorarTrasf){
+    var usado=false;
+    (dadosERP.fichasTecnicas||[]).forEach(function(f){
+        (f.envases||[]).forEach(function(e){ if(e.embalagemCodigo===cod) usado=true; });
+        (f.trasfegasRegistros||[]).forEach(function(t){ if(t!==ignorarTrasf && t.tipoTransfega==='barril' && t.barrilDestino===cod) usado=true; });
+    });
+    (window.envasesAdicionadosProducao||[]).forEach(function(e){ if(e.embalagemCodigo===cod) usado=true; });
+    (window.trasfegasProducao||[]).forEach(function(t){ if(t!==ignorarTrasf && t.tipoTransfega==='barril' && t.barrilDestino===cod) usado=true; });
+    return usado;
+};
+
 window.salvarTrasfegaERP=function(){
     var data=document.getElementById('producaoTrasfegaData')?.value;if(!data){R8.toast.aviso('Informe a data.');return;}
     if(!window.trasfegasProducao)window.trasfegasProducao=[];
     var item={data:data,volume:document.getElementById('producaoTrasfegaVolume')?.value||'-',temp:document.getElementById('producaoTrasfegaTemp')?.value||'-'};
+    var _tipoTf=document.getElementById('producaoTrasfegaTipo')?.value||'';
+    var _antigoTf=(_editSecaoProducao==='listaTrasfegaProducao'&&_editIdxProducao!==null)?window.trasfegasProducao[_editIdxProducao]:null;
+    if(_tipoTf==='barril'){
+        var barrilO=document.getElementById('producaoTrasfegaBarrilOrigem')?.value||'';
+        var destTf=document.getElementById('producaoTrasfegaDestino')?.value||'barril';
+        var modoTf=document.getElementById('producaoTrasfegaLoteModo')?.value||'mesmo';
+        var volTf=parseFloat(document.getElementById('producaoTrasfegaVolume')?.value)||0;
+        var loteAtualTf=document.getElementById('producaoLote')?.value||'';
+        if(!barrilO){R8.toast.aviso('Selecione o barril de origem.');return;}
+        if(!(volTf>0)){R8.toast.aviso('Informe o volume (L) transferido.');return;}
+        var bInfoTf=(_trasfegaBarrisOrigem()||[]).find(function(x){return x.codigo===barrilO;});
+        if(bInfoTf && volTf>bInfoTf.saldo+0.01){R8.toast.erro('O barril '+barrilO+' só tem '+bInfoTf.saldo.toFixed(1)+' L em estoque — você está lançando '+volTf.toFixed(1)+' L.');return;}
+        var barrilD=document.getElementById('producaoTrasfegaBarrilDestino')?.value||'';
+        if(destTf==='barril' && !barrilD){R8.toast.aviso('Selecione o barril de destino.');return;}
+        if(destTf==='barril' && barrilD===barrilO){R8.toast.aviso('O barril de destino deve ser diferente do de origem.');return;}
+        if(destTf==='tanque' && modoTf!=='novo'){R8.toast.aviso('Para enviar o conteúdo do barril a um tanque, escolha "Migra para um novo lote".');return;}
+        var novoL=(document.getElementById('producaoTrasfegaNovoLote')?.value||'').trim();
+        if(modoTf==='novo'){
+            if(!novoL){R8.toast.aviso('Informe o código do novo lote.');return;}
+            if(novoL===loteAtualTf){R8.toast.aviso('O novo lote precisa ser diferente do lote atual.');return;}
+        }
+        var barrilDObj=(dadosERP.barris||[]).find(function(b){return b.codigo===barrilD;});
+        item.tipoTransfega='barril'; item.barrilOrigem=barrilO; item.destinoTipo=destTf; item.loteModo=modoTf;
+        if(destTf==='barril'){ item.barrilDestino=barrilD; item.barrilDestinoDescricao=(barrilDObj&&(barrilDObj.descricao||barrilDObj.tipo))||''; }
+        if(modoTf==='novo'){ item.loteDestino=novoL; item.estiloDestino=(document.getElementById('producaoTrasfegaNovoEstilo')?.value||'').trim(); }
+    }
+    // Barril de destino anterior (edição): libera se ninguém mais usa
+    if(_antigoTf && _antigoTf.tipoTransfega==='barril' && _antigoTf.barrilDestino && _antigoTf.barrilDestino!==item.barrilDestino && !_barrilReferenciado(_antigoTf.barrilDestino,_antigoTf)){
+        window._liberarBarrilPorCodigo(_antigoTf.barrilDestino);
+    }
     if(_editSecaoProducao==='listaTrasfegaProducao'&&_editIdxProducao!==null){window.trasfegasProducao[_editIdxProducao]=item;_editIdxProducao=null;_editSecaoProducao=null;}
     else{window.trasfegasProducao.push(item);}
+    if(item.tipoTransfega==='barril' && item.barrilDestino){
+        window._bloquearBarrilPorCodigo(item.barrilDestino, item.loteModo==='novo'?item.loteDestino:(document.getElementById('producaoLote')?.value||''));
+    }
     _renderListaTrasfega();
     document.getElementById('producaoTrasfegaData').value='';document.getElementById('producaoTrasfegaVolume').value='';document.getElementById('producaoTrasfegaTemp').value='';
+    _resetFormTrasfegaBarril();
     fecharFormERP('formTrasfegaProducao');
 };
 
@@ -10285,8 +10409,9 @@ window.popularSelectEnvaseEmbalagem = function(incluirCodigoExtra){
 
 // ── ORIGEM DO ENVASE: direto do tanque OU transferência de um barril já envasado ──
 // Barris desta ficha (itens de envase já lançados) com o saldo que ainda está no barril.
-window._envaseBarrisOrigem = function(ignorarIdx){
+window._envaseBarrisOrigem = function(ignorarIdx, ignorarTrasfIdx){
     var itens = window.envasesAdicionadosProducao || [];
+    var trasfs = window.trasfegasProducao || [];
     var loteAtual = document.getElementById('producaoLote')?.value || '';
     var mapa = {}, ordem = [];
     itens.forEach(function(e, i){
@@ -10300,9 +10425,31 @@ window._envaseBarrisOrigem = function(ignorarIdx){
             mapa[e.barrilOrigemCodigo].transferido += (parseFloat(e.volume||e.volumeTotal)||0);
         }
     });
+    // Trasfegas de barril armazenado desta ficha também tiram volume do barril
+    trasfs.forEach(function(t, i){
+        if (t.tipoTransfega === 'barril' && t.barrilOrigem && mapa[t.barrilOrigem] && i !== ignorarTrasfIdx) {
+            mapa[t.barrilOrigem].transferido += (parseFloat(t.volume)||0);
+        }
+    });
     // Já vendido em PDV/TAP desse barril (estoque de produto acabado)
     (dadosERP.produtosAcabados || []).forEach(function(p){
         if (p.lote === loteAtual && p.embalagemCodigo && mapa[p.embalagemCodigo]) mapa[p.embalagemCodigo].vendido += ((p.pdv||0) + (p.taps||0));
+    });
+    // Barris que CHEGARAM neste lote por migração (trasfega vinda de outro lote): não têm envase
+    // nesta ficha, então o saldo vem direto do estoque de produto acabado.
+    var fichaSalva = (dadosERP.fichasTecnicas || []).find(function(f){ return f.lote === loteAtual; }) || {};
+    (dadosERP.produtosAcabados || []).forEach(function(p){
+        if (p.lote !== loteAtual || !p.embalagemCodigo || mapa[p.embalagemCodigo]) return;
+        if (_envaseCategoriaPorTipo(p.tipoEmbalagem) !== 'Barril') return;
+        var saidaSalva = 0, saidaAtual = 0;
+        (fichaSalva.envases||[]).forEach(function(e){ if (e.origem==='barril' && e.barrilOrigemCodigo===p.embalagemCodigo) saidaSalva += (parseFloat(e.volume||e.volumeTotal)||0); });
+        (fichaSalva.trasfegasRegistros||[]).forEach(function(t){ if (t.tipoTransfega==='barril' && t.barrilOrigem===p.embalagemCodigo) saidaSalva += (parseFloat(t.volume)||0); });
+        itens.forEach(function(e, i){ if (e.origem==='barril' && e.barrilOrigemCodigo===p.embalagemCodigo && i!==ignorarIdx) saidaAtual += (parseFloat(e.volume||e.volumeTotal)||0); });
+        trasfs.forEach(function(t, i){ if (t.tipoTransfega==='barril' && t.barrilOrigem===p.embalagemCodigo && i!==ignorarTrasfIdx) saidaAtual += (parseFloat(t.volume)||0); });
+        var saldoIni = (p.camaraFria||0) + saidaSalva - saidaAtual;
+        if (saldoIni <= 0.01) return;
+        mapa[p.embalagemCodigo] = { codigo:p.embalagemCodigo, descricao:p.embalagemDescricao||p.tipoEmbalagem||'', envasado:saldoIni, transferido:0, vendido:0 };
+        ordem.push(p.embalagemCodigo);
     });
     return ordem.map(function(c){
         var m = mapa[c]; m.saldo = parseFloat((m.envasado - m.transferido - m.vendido).toFixed(2)); return m;
@@ -10600,6 +10747,9 @@ window._reconciliarStatusBarris = function(silencioso) {
     (dadosERP.fichasTecnicas || []).forEach(function(f) {
         (f.envases || []).forEach(function(e) {
             if (e.embalagemCodigo) usados[e.embalagemCodigo] = true;
+        });
+        (f.trasfegasRegistros || []).forEach(function(t) {
+            if (t && t.tipoTransfega === 'barril' && t.barrilDestino) usados[t.barrilDestino] = true;
         });
     });
 
@@ -11432,7 +11582,34 @@ window._sincronizarProdutosAcabadosDeFichas = function() {
     // "lote|chaveEmb" válidos segundo o Envase ATUAL — fonte da verdade.
     var chavesValidas = {};
 
+    // ── MIGRAÇÃO ENTRE LOTES (Trasfega de barril armazenado) ─────────────
+    // Cada trasfega do tipo "barril" (registrada na Ficha do lote de ORIGEM) tira o volume
+    // do barril de origem e, se o destino for um barril, cria/credita o estoque do barril
+    // de destino — no mesmo lote ou em um novo lote. Nada disso altera f.envases (volume
+    // produzido do lote); tudo é derivado das fichas a cada sincronização, então editar ou
+    // excluir a trasfega desfaz o efeito sozinho.
+    var fontes = fichas.map(function(f){ return { lote:f.lote, estilo:f.estilo, dataProducao:f.dataProducao, envases:(f.envases || []).slice() }; });
+    var fontePorLote = {};
+    fontes.forEach(function(x){ if (x.lote) fontePorLote[x.lote] = x; });
+    var debitoBarril = {}; // "loteOrigem|barrilOrigem" → volume
     fichas.forEach(function(f) {
+        (f.trasfegasRegistros || []).forEach(function(t) {
+            if (!t || t.tipoTransfega !== 'barril' || !t.barrilOrigem) return;
+            var vol = parseFloat(t.volume) || 0; if (!(vol > 0)) return;
+            var kO = f.lote + '|' + t.barrilOrigem;
+            debitoBarril[kO] = (debitoBarril[kO] || 0) + vol;
+            if (t.destinoTipo === 'barril' && t.barrilDestino) {
+                var ld = (t.loteModo === 'novo' && t.loteDestino) ? t.loteDestino : f.lote;
+                var alvo = fontePorLote[ld];
+                if (!alvo) { alvo = { lote:ld, estilo:(t.estiloDestino || f.estilo || ''), dataProducao:(t.data || ''), envases:[] }; fontes.push(alvo); fontePorLote[ld] = alvo; }
+                else if (!alvo.estilo && t.estiloDestino) alvo.estilo = t.estiloDestino;
+                alvo.envases.push({ data:(t.data || ''), tipo:'Barril', embalagemCodigo:t.barrilDestino, embalagemDescricao:(t.barrilDestinoDescricao || ''),
+                    quantidade:'1', volumeUnitario:vol, volume:vol, origem:'migracao', loteOrigem:f.lote });
+            }
+        });
+    });
+
+    fontes.forEach(function(f) {
         var envs = f.envases || [];
         if (!envs.length) return;
 
@@ -11462,7 +11639,7 @@ window._sincronizarProdutosAcabadosDeFichas = function() {
             var totalVol = parseFloat(g.total.toFixed(2));
             if (totalVol <= 0) return;
             chavesValidas[f.lote + '|' + chaveEmb] = true;
-            var tr = parseFloat((transf[chaveEmb] || 0).toFixed(2));
+            var tr = parseFloat(((transf[chaveEmb] || 0) + (debitoBarril[f.lote + '|' + chaveEmb] || 0)).toFixed(2));
 
             var existente = dadosERP.produtosAcabados.find(function(p){ return p.lote === f.lote && (p.embalagemCodigo || p.tipoEmbalagem || '') === chaveEmb; });
             if (!existente) {
@@ -11485,7 +11662,7 @@ window._sincronizarProdutosAcabadosDeFichas = function() {
                     dadosERP.movimentacoesEstoque.push({
                         id: Date.now() + '_transf_' + f.lote + '_' + chaveEmb + '_' + Math.random().toString(36).slice(2,6),
                         data: obterDataHora(), tipo: 'saida', produto: f.estilo, quantidade: tr,
-                        origem: 'Transferência para garrafa/lata/growler', lote: f.lote, tipoEmbalagem: g.tipo, embalagemCodigo: g.embalagemCodigo,
+                        origem: 'Transferência de barril', lote: f.lote, tipoEmbalagem: g.tipo, embalagemCodigo: g.embalagemCodigo,
                         saldoAnterior: totalVol, saldoAtual: Math.max(0, parseFloat((totalVol - tr).toFixed(2)))
                     });
                 }
@@ -11515,7 +11692,7 @@ window._sincronizarProdutosAcabadosDeFichas = function() {
                     dadosERP.movimentacoesEstoque.push({
                         id: Date.now() + (dTr > 0 ? '_transf_' : '_correcao_transf_') + f.lote + '_' + chaveEmb + '_' + Math.random().toString(36).slice(2,6),
                         data: obterDataHora(), tipo: dTr > 0 ? 'saida' : 'entrada', produto: f.estilo, quantidade: parseFloat(Math.abs(dTr).toFixed(2)),
-                        origem: dTr > 0 ? 'Transferência para garrafa/lata/growler' : 'Transferência para garrafa/lata/growler (correção)',
+                        origem: dTr > 0 ? 'Transferência de barril' : 'Transferência de barril (correção)',
                         lote: f.lote, tipoEmbalagem: g.tipo, embalagemCodigo: g.embalagemCodigo,
                         saldoAnterior: cfAntes, saldoAtual: existente.camaraFria
                     });
@@ -17953,8 +18130,17 @@ if(document.readyState === 'loading'){
 <button class="btn-salvar" onclick="salvarLupuloERP()"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formLupuloProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="listaLupulosProducao"></div>
         <div class="secao">Trasfega</div>
-        <button class="btn-add-item" onclick="mostrarFormERP('formTrasfegaProducao')"><i class="fas fa-plus-circle"></i> Registrar Trasfega</button>
-        <div id="formTrasfegaProducao" class="form-flutuante"><h3>Nova Trasfega</h3><div class="linha-dupla"><div><label>Data</label><input type="date" id="producaoTrasfegaData"></div><div><label>Volume (L)</label><input type="number" step="0.1" id="producaoTrasfegaVolume" placeholder="-"></div><div><label>Temp (°C)</label><input type="number" step="0.1" id="producaoTrasfegaTemp" placeholder="-"></div></div><button class="btn-salvar" onclick="salvarTrasfegaERP()"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formTrasfegaProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
+        <button class="btn-add-item" onclick="_resetFormTrasfegaBarril();mostrarFormERP('formTrasfegaProducao')"><i class="fas fa-plus-circle"></i> Registrar Trasfega</button>
+        <div id="formTrasfegaProducao" class="form-flutuante"><h3>Nova Trasfega</h3><div class="linha-dupla"><div><label>Data</label><input type="date" id="producaoTrasfegaData"></div><div><label>Volume (L)</label><input type="number" step="0.1" id="producaoTrasfegaVolume" placeholder="-" oninput="_onTrasfegaBarrilOrigemChange()"></div><div><label>Temp (°C)</label><input type="number" step="0.1" id="producaoTrasfegaTemp" placeholder="-"></div></div>
+<div class="campo-linha"><label>Tipo de trasfega</label><select id="producaoTrasfegaTipo" onchange="_onTrasfegaTipoChange()" style="width:100%"><option value="">Entre tanques / padrão (não altera o estoque)</option><option value="barril">De barril armazenado (movimenta o estoque)</option></select></div>
+<div id="wrapTrasfegaBarril" style="display:none;background:#fffaf0;border:1.5px solid #ecd9a6;border-radius:12px;padding:10px 12px;margin-bottom:10px">
+  <div class="campo-linha"><label>Barril de origem (estoque deste lote)</label><select id="producaoTrasfegaBarrilOrigem" onfocus="_popularTrasfegaBarrisOrigem()" onchange="_onTrasfegaBarrilOrigemChange()" style="width:100%"><option value="">— Selecione o barril —</option></select><div id="trasfegaBarrilSaldo" style="font-size:11.5px;color:#7a5a14;margin-top:4px;line-height:1.4"></div></div>
+  <div class="campo-linha"><label>Destino</label><select id="producaoTrasfegaDestino" onchange="_onTrasfegaDestinoChange()" style="width:100%"><option value="barril">Barril</option><option value="tanque">Tanque</option></select></div>
+  <div class="campo-linha" id="wrapTrasfegaBarrilDestino"><label>Barril de destino</label><select id="producaoTrasfegaBarrilDestino" onfocus="_popularTrasfegaBarrisDestino()" style="width:100%"><option value="">— Selecione o barril —</option></select></div>
+  <div class="campo-linha"><label>O produto…</label><select id="producaoTrasfegaLoteModo" onchange="_onTrasfegaDestinoChange()" style="width:100%"><option value="mesmo">Permanece neste lote</option><option value="novo">Migra para um novo lote / novo produto</option></select></div>
+  <div id="wrapTrasfegaNovoLote" style="display:none"><div class="linha-dupla"><div><label>Novo lote</label><input type="text" id="producaoTrasfegaNovoLote" list="listaLotesTrasfega" placeholder="Ex: 26.11.062" autocomplete="off"><datalist id="listaLotesTrasfega"></datalist></div><div><label>Produto / Estilo do novo lote</label><input type="text" id="producaoTrasfegaNovoEstilo" placeholder="Ex: IPA com Tangerina"></div></div>
+  <div style="font-size:11px;color:#8a7a68;line-height:1.35"><i class="fas fa-info-circle"></i> O volume sai do estoque deste lote e entra no estoque do novo lote. Para ter ficha e rastreabilidade do novo lote (ex.: extrato de tangerina), crie a Ficha Técnica dele com o mesmo código de lote.</div></div>
+</div><button class="btn-salvar" onclick="salvarTrasfegaERP()"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formTrasfegaProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="listaTrasfegaProducao"></div>
         <div class="secao">Inoculação de Leveduras</div>
         <button class="btn-add-item" onclick="mostrarFormERP('formLeveduraProducao')"><i class="fas fa-plus-circle"></i> Adicionar Levedura</button>
