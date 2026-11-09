@@ -4074,7 +4074,7 @@ function _repopularTelaAtualAposLoad() {
             popularSelectSalLoteProducao();
             popularSelectTanqueProducao();
             popularSelectEstiloProducao();
-            ['malte','adjunto','lupulo','levedura','especiaria'].forEach(function(t){ popularSelectInsumoPorTipo(t); });
+            ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante'].forEach(function(t){ popularSelectInsumoPorTipo(t); });
             popularSelectLupuloProducao();
             popularSelectLeveduraProducao();
             if (elTanque && valTanque) elTanque.value = valTanque;
@@ -6965,7 +6965,7 @@ window.irParaTelaERP = function(id) {
         try { popularSelectTanqueProducao(); } catch(e) {}
         try { popularSelectEstiloProducao(); } catch(e) {}
         try { popularSelectAguaOrigemProducao(); } catch(e) {}
-        try { ['malte','adjunto','lupulo','levedura','especiaria'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
+        try { ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
         try { popularSelectLupuloProducao(); } catch(e) {}
         try { popularSelectLeveduraProducao(); } catch(e) {}
         // Rede de segurança: se os dados do Firebase ainda não tinham chegado na 1ª tentativa, repopula após 1s
@@ -6979,7 +6979,7 @@ window.irParaTelaERP = function(id) {
             try { popularSelectTanqueProducao(); } catch(e) {}
             try { popularSelectEstiloProducao(); } catch(e) {}
             try { popularSelectAguaOrigemProducao(); } catch(e) {}
-            try { ['malte','adjunto','lupulo','levedura','especiaria'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
+            try { ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
             try { popularSelectLupuloProducao(); } catch(e) {}
             try { popularSelectLeveduraProducao(); } catch(e) {}
             if (elTanque && valTanque) elTanque.value = valTanque;
@@ -8101,7 +8101,7 @@ function popularSelectEstiloProducao(){
     s.innerHTML=h;
     if(atual) s.value=atual;
 }
-function popularSelectInsumoPorTipo(tipo){let mapa={malte:'malte',adjunto:'adjunto',lupulo:'lúpulos',levedura:'levedura',especiaria:'especiaria'};let chave=mapa[tipo.toLowerCase()]||tipo.toLowerCase();let id='insumo'+tipo.charAt(0).toUpperCase()+tipo.slice(1)+'SelectProducao';let s=document.getElementById(id);if(!s)return;let filtrado=dadosERP.insumos.filter(function(i){return i.tipo&&i.tipo.toLowerCase().trim()===chave;});
+function popularSelectInsumoPorTipo(tipo){let mapa={malte:'malte',adjunto:'adjunto',lupulo:'lúpulos',levedura:'levedura',especiaria:'especiaria',coadjuvante:'coadjuvante'};let chave=mapa[tipo.toLowerCase()]||tipo.toLowerCase();let id='insumo'+tipo.charAt(0).toUpperCase()+tipo.slice(1)+'SelectProducao';let s=document.getElementById(id);if(!s)return;let filtrado=dadosERP.insumos.filter(function(i){return i.tipo&&i.tipo.toLowerCase().trim()===chave;});
     // Um código pode ter vários registros (compras/lotes diferentes) — mostra
     // uma única opção por código, com o SALDO AGRUPADO real, para o usuário
     // ver a disponibilidade antes de lançar na produção.
@@ -8263,7 +8263,7 @@ window._editarItemProducao = function(containerId, i) {
         // fonte preferencial, mas se estiver ausente/incorreta (dado legado),
         // deriva a categoria a partir do tipo real do insumo (campo confiável,
         // vindo do Cadastro) em vez de falhar silenciosamente.
-        var mapaTipoCat = {'malte':'malte','adjunto':'adjunto','lúpulos':'lupulo','lupulo':'lupulo','levedura':'levedura','especiaria':'especiaria'};
+        var mapaTipoCat = {'malte':'malte','adjunto':'adjunto','lúpulos':'lupulo','lupulo':'lupulo','levedura':'levedura','especiaria':'especiaria','coadjuvante':'coadjuvante'};
         var tipo = (item.tipoCategoria||'').toLowerCase();
         if (!mapaTipoCat[tipo]) tipo = mapaTipoCat[(item.tipo||'').toLowerCase()] || 'malte';
         else tipo = mapaTipoCat[tipo];
@@ -18102,12 +18102,14 @@ if(document.readyState === 'loading'){
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoLupuloProducao')"><i class="fas fa-plus-circle"></i> Lúpulo</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoLeveduraProducao')"><i class="fas fa-plus-circle"></i> Levedura</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoEspeciariaProducao')"><i class="fas fa-plus-circle"></i> Especiaria</button>
+            <button class="btn-insumo" onclick="mostrarFormERP('formInsumoCoadjuvanteProducao')"><i class="fas fa-plus-circle"></i> Coadjuvantes</button>
         </div>
         <div id="formInsumoMalteProducao" class="form-flutuante"><h3>Adicionar Malte</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoMalteSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (kg)</label><input type="number" step="0.01" id="insumoMalteQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('malte')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoMalteProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoAdjuntoProducao" class="form-flutuante"><h3>Adicionar Adjunto</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoAdjuntoSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (kg)</label><input type="number" step="0.01" id="insumoAdjuntoQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('adjunto')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoAdjuntoProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoLupuloProducao" class="form-flutuante"><h3>Adicionar Lúpulo</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoLupuloSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoLupuloQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('lupulo')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoLupuloProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoLeveduraProducao" class="form-flutuante"><h3>Adicionar Levedura</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoLeveduraSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoLeveduraQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('levedura')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoLeveduraProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoEspeciariaProducao" class="form-flutuante"><h3>Adicionar Especiaria</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoEspeciariaSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoEspeciariaQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('especiaria')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoEspeciariaProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
+        <div id="formInsumoCoadjuvanteProducao" class="form-flutuante"><h3>Adicionar Coadjuvante</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoCoadjuvanteSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (na unidade do cadastro)</label><input type="number" step="0.1" id="insumoCoadjuvanteQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('coadjuvante')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoCoadjuvanteProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="listaInsumosProducao"></div>
         <div class="secao">Mosturação</div>
         <button class="btn-add-item" onclick="mostrarFormERP('formMosturaProducao')"><i class="fas fa-plus-circle"></i> Adicionar Etapa</button>
