@@ -4074,7 +4074,7 @@ function _repopularTelaAtualAposLoad() {
             popularSelectSalLoteProducao();
             popularSelectTanqueProducao();
             popularSelectEstiloProducao();
-            ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante'].forEach(function(t){ popularSelectInsumoPorTipo(t); });
+            ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante','aditivo'].forEach(function(t){ popularSelectInsumoPorTipo(t); });
             popularSelectLupuloProducao();
             popularSelectLeveduraProducao();
             if (elTanque && valTanque) elTanque.value = valTanque;
@@ -6965,7 +6965,7 @@ window.irParaTelaERP = function(id) {
         try { popularSelectTanqueProducao(); } catch(e) {}
         try { popularSelectEstiloProducao(); } catch(e) {}
         try { popularSelectAguaOrigemProducao(); } catch(e) {}
-        try { ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
+        try { ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante','aditivo'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
         try { popularSelectLupuloProducao(); } catch(e) {}
         try { popularSelectLeveduraProducao(); } catch(e) {}
         // Rede de segurança: se os dados do Firebase ainda não tinham chegado na 1ª tentativa, repopula após 1s
@@ -6979,7 +6979,7 @@ window.irParaTelaERP = function(id) {
             try { popularSelectTanqueProducao(); } catch(e) {}
             try { popularSelectEstiloProducao(); } catch(e) {}
             try { popularSelectAguaOrigemProducao(); } catch(e) {}
-            try { ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
+            try { ['malte','adjunto','lupulo','levedura','especiaria','coadjuvante','aditivo'].forEach(function(t) { popularSelectInsumoPorTipo(t); }); } catch(e) {}
             try { popularSelectLupuloProducao(); } catch(e) {}
             try { popularSelectLeveduraProducao(); } catch(e) {}
             if (elTanque && valTanque) elTanque.value = valTanque;
@@ -7716,7 +7716,7 @@ window._r8ClearRevisaoLaudo = function(btn, idx) {
 function _r8RenderizarRevisaoNFe(dados) {
     window._r8RevisaoLaudos = {};
     window._r8RevisaoItensAtual = dados.itens || [];
-    var tiposDisponiveis = ['Malte', 'Levedura', 'Lúpulos', 'Adjunto', 'Especiaria', 'Coadjuvante'];
+    var tiposDisponiveis = ['Malte', 'Levedura', 'Lúpulos', 'Adjunto', 'Especiaria', 'Coadjuvante', 'Aditivo'];
     window._r8OrigemImportacaoAtual = dados.origemLabel || 'Importação NF-e';
     var overlay = document.getElementById('_r8OverlayRevisaoNFe');
     if (overlay) overlay.remove();
@@ -8101,7 +8101,7 @@ function popularSelectEstiloProducao(){
     s.innerHTML=h;
     if(atual) s.value=atual;
 }
-function popularSelectInsumoPorTipo(tipo){let mapa={malte:'malte',adjunto:'adjunto',lupulo:'lúpulos',levedura:'levedura',especiaria:'especiaria',coadjuvante:'coadjuvante'};let chave=mapa[tipo.toLowerCase()]||tipo.toLowerCase();let id='insumo'+tipo.charAt(0).toUpperCase()+tipo.slice(1)+'SelectProducao';let s=document.getElementById(id);if(!s)return;let filtrado=dadosERP.insumos.filter(function(i){return i.tipo&&i.tipo.toLowerCase().trim()===chave;});
+function popularSelectInsumoPorTipo(tipo){let mapa={malte:'malte',adjunto:'adjunto',lupulo:'lúpulos',levedura:'levedura',especiaria:'especiaria',coadjuvante:'coadjuvante',aditivo:'aditivo'};let chave=mapa[tipo.toLowerCase()]||tipo.toLowerCase();let id='insumo'+tipo.charAt(0).toUpperCase()+tipo.slice(1)+'SelectProducao';let s=document.getElementById(id);if(!s)return;let filtrado=dadosERP.insumos.filter(function(i){return i.tipo&&i.tipo.toLowerCase().trim()===chave;});
     // Um código pode ter vários registros (compras/lotes diferentes) — mostra
     // uma única opção por código, com o SALDO AGRUPADO real, para o usuário
     // ver a disponibilidade antes de lançar na produção.
@@ -8263,7 +8263,7 @@ window._editarItemProducao = function(containerId, i) {
         // fonte preferencial, mas se estiver ausente/incorreta (dado legado),
         // deriva a categoria a partir do tipo real do insumo (campo confiável,
         // vindo do Cadastro) em vez de falhar silenciosamente.
-        var mapaTipoCat = {'malte':'malte','adjunto':'adjunto','lúpulos':'lupulo','lupulo':'lupulo','levedura':'levedura','especiaria':'especiaria','coadjuvante':'coadjuvante'};
+        var mapaTipoCat = {'malte':'malte','adjunto':'adjunto','lúpulos':'lupulo','lupulo':'lupulo','levedura':'levedura','especiaria':'especiaria','coadjuvante':'coadjuvante','aditivo':'aditivo'};
         var tipo = (item.tipoCategoria||'').toLowerCase();
         if (!mapaTipoCat[tipo]) tipo = mapaTipoCat[(item.tipo||'').toLowerCase()] || 'malte';
         else tipo = mapaTipoCat[tipo];
@@ -9350,7 +9350,8 @@ var R8_TIPO_INSUMO_STYLE = {
     Levedura:    {icone:'fa-bacteria',      grad:'linear-gradient(135deg,#ede9fe,#ddd6fe)', cor:'#5b21b6'},
     Adjunto:     {icone:'fa-flask',         grad:'linear-gradient(135deg,#dbeafe,#bfdbfe)', cor:'#1e40af'},
     Especiaria:  {icone:'fa-mortar-pestle', grad:'linear-gradient(135deg,#fce7f3,#fbcfe8)', cor:'#9d174d'},
-    Coadjuvante: {icone:'fa-vial',          grad:'linear-gradient(135deg,#cffafe,#a5f3fc)', cor:'#155e75'}
+    Coadjuvante: {icone:'fa-vial',          grad:'linear-gradient(135deg,#cffafe,#a5f3fc)', cor:'#155e75'},
+    Aditivo:     {icone:'fa-droplet',       grad:'linear-gradient(135deg,#ffedd5,#fed7aa)', cor:'#9a3412'}
 };
 function _r8EstiloTipoInsumo(tipo) {
     return R8_TIPO_INSUMO_STYLE[tipo] || {icone:'fa-flask', grad:'linear-gradient(135deg,#f1f5f9,#e2e8f0)', cor:'#475569'};
@@ -17887,7 +17888,7 @@ if(document.readyState === 'loading'){
                  lista de resultado real, que ficava escondida na aba Saldo. -->
             <div class="filtros-estoque">
                 <div class="campo-linha"><label>Buscar</label><div class="busca-wrap"><input type="text" id="buscaEstoque" placeholder="Código, descrição..." oninput="atualizarTabelaEstoqueAgrupada()" autocomplete="off"><div class="busca-dropdown" id="ddBuscaEstoque"></div></div></div>
-                <div class="campo-linha"><label>Tipo</label><select id="filtroTipoEstoqueNovo" onchange="atualizarTabelaEstoqueAgrupada()"><option value="">Todos</option><option>Malte</option><option>Lúpulos</option><option>Levedura</option><option>Adjunto</option><option>Especiaria</option><option>Coadjuvante</option></select></div>
+                <div class="campo-linha"><label>Tipo</label><select id="filtroTipoEstoqueNovo" onchange="atualizarTabelaEstoqueAgrupada()"><option value="">Todos</option><option>Malte</option><option>Lúpulos</option><option>Levedura</option><option>Adjunto</option><option>Especiaria</option><option>Coadjuvante</option><option>Aditivo</option></select></div>
                 <div class="filtro-checkbox"><input type="checkbox" id="estoqueBaixoCheck" onchange="atualizarTabelaEstoqueAgrupada()"><label for="estoqueBaixoCheck">Baixo estoque</label></div>
             </div>
             <div id="saldoPorLoteInsumos"></div>
@@ -18103,6 +18104,7 @@ if(document.readyState === 'loading'){
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoLeveduraProducao')"><i class="fas fa-plus-circle"></i> Levedura</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoEspeciariaProducao')"><i class="fas fa-plus-circle"></i> Especiaria</button>
             <button class="btn-insumo" onclick="mostrarFormERP('formInsumoCoadjuvanteProducao')"><i class="fas fa-plus-circle"></i> Coadjuvantes</button>
+            <button class="btn-insumo" onclick="mostrarFormERP('formInsumoAditivoProducao')"><i class="fas fa-plus-circle"></i> Aditivos</button>
         </div>
         <div id="formInsumoMalteProducao" class="form-flutuante"><h3>Adicionar Malte</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoMalteSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (kg)</label><input type="number" step="0.01" id="insumoMalteQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('malte')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoMalteProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoAdjuntoProducao" class="form-flutuante"><h3>Adicionar Adjunto</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoAdjuntoSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (kg)</label><input type="number" step="0.01" id="insumoAdjuntoQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('adjunto')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoAdjuntoProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
@@ -18110,6 +18112,7 @@ if(document.readyState === 'loading'){
         <div id="formInsumoLeveduraProducao" class="form-flutuante"><h3>Adicionar Levedura</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoLeveduraSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoLeveduraQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('levedura')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoLeveduraProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoEspeciariaProducao" class="form-flutuante"><h3>Adicionar Especiaria</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoEspeciariaSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (g)</label><input type="number" step="0.1" id="insumoEspeciariaQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('especiaria')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoEspeciariaProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="formInsumoCoadjuvanteProducao" class="form-flutuante"><h3>Adicionar Coadjuvante</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoCoadjuvanteSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (na unidade do cadastro)</label><input type="number" step="0.1" id="insumoCoadjuvanteQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('coadjuvante')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoCoadjuvanteProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
+        <div id="formInsumoAditivoProducao" class="form-flutuante"><h3>Adicionar Aditivo</h3><div class="campo-linha"><label>Selecione *</label><select id="insumoAditivoSelectProducao"></select></div><div class="campo-linha"><label>Quantidade (na unidade do cadastro)</label><input type="number" step="0.1" id="insumoAditivoQtdProducao" placeholder="-"></div><button class="btn-salvar-insumo" onclick="salvarInsumoCategoriaERP('aditivo')"><i class="fas fa-check-circle"></i> Salvar</button><button class="btn-cancelar" onclick="fecharFormERP('formInsumoAditivoProducao')"><i class="fas fa-times-circle"></i> Cancelar</button></div>
         <div id="listaInsumosProducao"></div>
         <div class="secao">Mosturação</div>
         <button class="btn-add-item" onclick="mostrarFormERP('formMosturaProducao')"><i class="fas fa-plus-circle"></i> Adicionar Etapa</button>
@@ -18421,7 +18424,7 @@ if(document.readyState === 'loading'){
 
     <div id="telaInsumos" class="tela">
         <div class="hdr"><div class="hdr-linha1"><button class="btn-tela-voltar" onclick="irParaTelaERP('telaSubCadastros')"><i class="fas fa-arrow-left"></i> Voltar</button><h2>Insumos</h2></div><div class="hdr-acoes"><button class="btn-tela-pdf" onclick="gerarPDFCadastro('insumos')"><i class="fas fa-file-pdf"></i> PDF</button></div></div>
-        <div id="formInsumo" class="form-flutuante"><h3>Novo Insumo</h3><div class="campo-linha"><label>Tipo</label><select id="insTipo" onchange="atualizarCampoInsumoERP()"><option>Malte</option><option>Levedura</option><option>Lúpulos</option><option>Adjunto</option><option>Especiaria</option><option>Coadjuvante</option></select></div><div class="campo-linha"><label>Descrição</label><input type="text" id="insDescricao" placeholder="-" oninput="document.getElementById('insCodigo').style.borderColor='';document.getElementById('insCodigo').style.background='';"></div><div class="campo-linha"><label>Código *</label><div style="display:flex;gap:6px;align-items:center"><input type="text" id="insCodigo" placeholder="-" style="flex:1" required><button type="button" onclick="_gerarCodInsumo()" style="flex-shrink:0;padding:8px 12px;background:#c49a2b;color:#fff;border:none;border-radius:9px;font-size:11px;cursor:pointer;font-weight:700;white-space:nowrap"><i class="fas fa-magic"></i> Auto</button></div></div><div class="campo-linha"><label>Lote</label><div class="busca-wrap"><input type="text" id="insLote" placeholder="-" autocomplete="off"><div class="busca-dropdown" id="ddInsLote"></div></div></div><div class="campo-linha"><label>Produtor</label><input type="text" id="insProdutor" placeholder="-"></div><div class="campo-linha"><label>Fornecedor</label><input type="text" id="insFornecedor" placeholder="-"></div><div class="linha-dupla"><div><label id="lblQuantidade">Quantidade (kg)</label><input type="number" step="0.01" id="insQtd" placeholder="-"></div><div><label id="lblValor">Valor (R$/kg)</label><input type="text" inputmode="decimal" id="insValor" placeholder="R$ 0,00" oninput="R8.mascaraMoeda(this)"></div></div><div class="campo-linha"><label>Validade</label><input type="date" id="insValidade" placeholder="-"></div><div class="campo-linha"><label>Obs</label><textarea id="insObs" rows="2" placeholder="-"></textarea></div><div class="campo-linha">
+        <div id="formInsumo" class="form-flutuante"><h3>Novo Insumo</h3><div class="campo-linha"><label>Tipo</label><select id="insTipo" onchange="atualizarCampoInsumoERP()"><option>Malte</option><option>Levedura</option><option>Lúpulos</option><option>Adjunto</option><option>Especiaria</option><option>Coadjuvante</option><option>Aditivo</option></select></div><div class="campo-linha"><label>Descrição</label><input type="text" id="insDescricao" placeholder="-" oninput="document.getElementById('insCodigo').style.borderColor='';document.getElementById('insCodigo').style.background='';"></div><div class="campo-linha"><label>Código *</label><div style="display:flex;gap:6px;align-items:center"><input type="text" id="insCodigo" placeholder="-" style="flex:1" required><button type="button" onclick="_gerarCodInsumo()" style="flex-shrink:0;padding:8px 12px;background:#c49a2b;color:#fff;border:none;border-radius:9px;font-size:11px;cursor:pointer;font-weight:700;white-space:nowrap"><i class="fas fa-magic"></i> Auto</button></div></div><div class="campo-linha"><label>Lote</label><div class="busca-wrap"><input type="text" id="insLote" placeholder="-" autocomplete="off"><div class="busca-dropdown" id="ddInsLote"></div></div></div><div class="campo-linha"><label>Produtor</label><input type="text" id="insProdutor" placeholder="-"></div><div class="campo-linha"><label>Fornecedor</label><input type="text" id="insFornecedor" placeholder="-"></div><div class="linha-dupla"><div><label id="lblQuantidade">Quantidade (kg)</label><input type="number" step="0.01" id="insQtd" placeholder="-"></div><div><label id="lblValor">Valor (R$/kg)</label><input type="text" inputmode="decimal" id="insValor" placeholder="R$ 0,00" oninput="R8.mascaraMoeda(this)"></div></div><div class="campo-linha"><label>Validade</label><input type="date" id="insValidade" placeholder="-"></div><div class="campo-linha"><label>Obs</label><textarea id="insObs" rows="2" placeholder="-"></textarea></div><div class="campo-linha">
             <label>Laudo de Análise <span style="font-size:10px;color:#94a3b8">(PDF, JPG ou PNG · max 5 MB)</span></label>
             <div style="display:flex;align-items:center;gap:8px">
                 <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#eff6ff;border:1.5px dashed #3b82f6;border-radius:10px;cursor:pointer;font-size:12px;color:#1d4ed8;font-weight:600;flex:1">
@@ -18452,7 +18455,7 @@ if(document.readyState === 'loading'){
             <select id="filtroTipoInsumo" onchange="atualizarListaInsumosERP()"
                 style="height:36px;padding:0 8px;border:1.5px solid #e0d8ce;border-radius:9px;font-size:12px;font-family:inherit;background:#faf8f5;color:#2c1810">
                 <option value="">Todos os tipos</option>
-                <option>Malte</option><option>Levedura</option><option>Lúpulos</option><option>Adjunto</option><option>Especiaria</option><option>Coadjuvante</option>
+                <option>Malte</option><option>Levedura</option><option>Lúpulos</option><option>Adjunto</option><option>Especiaria</option><option>Coadjuvante</option><option>Aditivo</option>
             </select>
         </div>
         <div id="listaInsumosERP"></div>
