@@ -7038,7 +7038,20 @@ window._r8AtualizarPainelAdministrativo = function() {
     painel.style.display = 'block';
     var nomeEl = R8.$('painelAdminNome');
     var emailEl = R8.$('painelAdminEmail');
-    if (nomeEl) nomeEl.textContent = (usuarioAtual && usuarioAtual.displayName) || (ehAdmin ? 'Administrador' : 'Operador');
+    // Correção única de grafia: "Joacir Rodrogues" -> "Joacir Rodrigues"
+    // (o nome vem da conta Firebase e do cadastro em usuarios/{uid}/nome).
+    try {
+        var _errado = 'Joacir Rodrogues', _certo = 'Joacir Rodrigues';
+        if (usuarioAtual && usuarioAtual.displayName === _errado && typeof usuarioAtual.updateProfile === 'function') {
+            usuarioAtual.updateProfile({ displayName: _certo }).catch(function(){});
+        }
+        if (usuarioAtual && usuarioAtual.uid && window.db) {
+            window.db.ref('usuarios/' + usuarioAtual.uid + '/nome').once('value').then(function(s) {
+                if (s.val() === _errado) window.db.ref('usuarios/' + usuarioAtual.uid + '/nome').set(_certo);
+            }).catch(function(){});
+        }
+    } catch(e) {}
+    if (nomeEl) nomeEl.textContent = (function(n){ return n === 'Joacir Rodrogues' ? 'Joacir Rodrigues' : n; })((usuarioAtual && usuarioAtual.displayName) || (ehAdmin ? 'Administrador' : 'Operador'));
     if (emailEl) emailEl.textContent = (usuarioAtual && usuarioAtual.email) || '';
     if (!ehAdmin || !window.db) return;
     window.db.ref('usuarios').once('value').then(function(snap) {
@@ -18282,7 +18295,7 @@ _r8ProtegerContraDuploClique('salvarEquipamentoERP', 'atualizarListaEquipamentos
 // DASHBOARD: Novos KPIs adicionais ───────────────────────────────────────
 // Patch renderDashboard para adicionar análise sensorial e eficiência média
 var _origRenderDashboard = window.renderDashboard;
-// ── "Fazer agora": faixa de ações no topo do Dashboard (só leitura) ──────
+// ── "Pontos de Atenção": card de alertas no final do Dashboard (só leitura) ──────
 // Usa apenas dados já existentes: insumos vencidos/vencendo e saldo negativo.
 // Não altera nenhum cálculo nem registro; só mostra o que pede ação.
 window._r8HtmlFazerAgora = function() {
@@ -18311,10 +18324,10 @@ window._r8HtmlFazerAgora = function() {
     if (vencidos.length) itens.push({cor:'#ef4444', icone:'fa-calendar-xmark', texto: vencidos.length + ' insumo(s) vencido(s)', tela:'telaEstoqueInsumos', ver:'Ver estoque'});
     if (vencendo.length) itens.push({cor:'#f59e0b', icone:'fa-hourglass-half', texto: vencendo.length + ' insumo(s) vencem em até 30 dias', tela:'telaEstoqueInsumos', ver:'Ver estoque'});
     if (!itens.length) {
-        return '<div style="display:flex;align-items:center;gap:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:#065f46"><i class="fas fa-circle-check"></i> Nada pendente agora nos insumos.</div>';
+        return '<div style="display:flex;align-items:center;gap:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:#065f46"><i class="fas fa-circle-check"></i> Nenhum ponto de atenção nos insumos.</div>';
     }
     var h = '<div style="background:#fffbf3;border:1px solid #e7d9bf;border-radius:12px;padding:12px 14px;margin-bottom:14px">';
-    h += '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#8a6d3b;text-transform:uppercase;margin-bottom:8px">Fazer agora</div>';
+    h += '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#8a6d3b;text-transform:uppercase;margin-bottom:8px">Pontos de Atenção</div>';
     itens.forEach(function(it){
         h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #efe4d0">'
            + '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#2c1810"><i class="fas ' + it.icone + '" style="color:' + it.cor + '"></i> ' + R8.esc(it.texto) + '</div>'
@@ -18327,10 +18340,6 @@ window._r8HtmlFazerAgora = function() {
 
 window.renderDashboard = function() {
     _origRenderDashboard && _origRenderDashboard();
-    try {
-        var _elAgora = document.getElementById('dashboardConteudo');
-        if (_elAgora) _elAgora.insertAdjacentHTML('afterbegin', window._r8HtmlFazerAgora());
-    } catch(e) { R8.log.erro('dashboard:fazer-agora', e); }
     // Adicionar bloco de eficiência média e análise sensorial ao final
     var el = document.getElementById('dashboardConteudo');
     if (!el) return;
@@ -18344,6 +18353,8 @@ window.renderDashboard = function() {
     extra += _dashKpi('OG atingida',eficMedia?eficMedia.toFixed(1)+'%':'—', eficMedia?(eficMedia>=80?'#10b981':eficMedia>=70?'#f59e0b':'#ef4444'):'#94a3b8','fa-percentage', eficMedia?'OG real ÷ OG planejada':'Sem dados');
     extra += _dashKpi('Nota Sensorial',notaMedia?notaMedia.toFixed(1)+'/60':'—', notaMedia?(notaMedia>=48?'#10b981':notaMedia>=36?'#c49a2b':'#ef4444'):'#94a3b8','fa-star', notaMedia?'Degustações':'Sem análises');
     extra += '</div>';
+    // Card "Pontos de Atenção" no final do Dashboard (antes da versão do sistema)
+    try { extra += window._r8HtmlFazerAgora(); } catch(e) { R8.log.erro('dashboard:pontos-de-atencao', e); }
     // Versão do sistema, visível depois do login (para conferir qual arquivo está no ar)
     extra += '<div style="text-align:center;font-size:10.5px;color:#a89a86;letter-spacing:.4px;margin:6px 0 18px">Versão do sistema: BUILD-' + R8.esc(window.R8_BUILD || '?') + '</div>';
     el.innerHTML += extra;
@@ -23611,4 +23622,5 @@ window._R8_BJCP = [{"d":"Altbier","s":"Também: Alt. OG 1.044 a 1.052, IBU 25 a 
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ window._r8AjustarTextos(); });
 })();
 </script>
+</body>
 </html>
