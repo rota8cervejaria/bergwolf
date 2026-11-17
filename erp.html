@@ -28,7 +28,10 @@
     // aparelhos (link, app, qualquer celular/tablet), assim que tiverem
     // internet — sem nenhuma ação do usuário.
     // ══════════════════════════════════════════════════════════════════
-    window.R8_BUILD = '2026-11-16-90';
+    window.R8_BUILD = '2026-11-17-past1';
+    // Endereço público usado em TODOS os QR Codes (lote, barril, equipamento, sanitização, venda,
+    // câmara fria). Para trocar de domínio no futuro, altere só esta linha.
+    window.R8_URL_QR = 'https://www.cervejariabergwolf.com/erp.html';
     // Data de hoje (AAAA-MM-DD) no horário LOCAL — toISOString() usa UTC e, depois das 21h no Brasil, devolvia amanhã.
     window._r8HojeISO = function() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
     (function() {
@@ -6518,6 +6521,7 @@ R8.crud = {
 };
 
 window._pastL = []; // leituras
+window._PAST_EMB={'':{n:'—',a:''},'lata473':{n:'Lata 473 ml',a:'L473'},'gar500':{n:'Garrafa 500 ml',a:'G500'},'gar600':{n:'Garrafa 600 ml',a:'G600'}};
 
 // Faixa de PU (Unidades de Pasteurização): abaixo de 15 = insuficiente; 15 a 25 = adequado;
 // acima de 25 = excesso (risco de alteração sensorial). Um único lugar para todas as telas/PDF.
@@ -6586,7 +6590,7 @@ window.pastAdicionar = function(){
     var tp=parseFloat(document.getElementById('pastTp').value);
     if(isNaN(t)||isNaN(tp)||tp<=0){R8.toast.aviso('Informe temperatura e Tp válidos.');return;}
     if(t<40||t>85){R8.toast.aviso('Temperatura fora do intervalo (40–85°C).');return;}
-    window._pastL.push({qtd:qtd,temp:t,tp:tp,up:_upCalc(t,tp),upAcum:0,tAcum:0});
+    window._pastL.push({qtd:qtd,emb:(document.getElementById('pastEmb')||{}).value||'lata473',temp:t,tp:tp,up:_upCalc(t,tp),upAcum:0,tAcum:0});
     _pastRecalc();
     document.getElementById('pastQtd').value='';
     document.getElementById('pastTemp').value='';
@@ -6655,7 +6659,7 @@ function pastRenderTabela(){
         var upC=l.up>=1?'#065f46':l.up>=0.1?'#92400e':'#6b7280';
         h+='<tr style="background:'+bg+';text-align:center">';
         h+='<td style="padding:'+p+';color:#aaa">'+(i+1)+'</td>';
-        h+='<td style="padding:'+p+'">'+(l.qtd||'—')+'</td>';
+        h+='<td style="padding:'+p+'">'+(l.qtd||'—')+((window._PAST_EMB[l.emb]||{}).a?'<br><span style="font-size:7px;color:#888">'+window._PAST_EMB[l.emb].a+'</span>':'')+'</td>';
         h+='<td style="padding:'+p+';font-weight:700;color:#2c1810">'+l.temp.toFixed(1)+'°</td>';
         h+='<td style="padding:'+p+'">'+l.tp+'</td>';
         h+='<td style="padding:'+p+';color:#555">'+l.tAcum+'m</td>';
@@ -6683,7 +6687,11 @@ window.pastEditar = function(i){
         +'<div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:16px;color:#2c1810;margin-bottom:18px;display:flex;align-items:center;gap:8px">'
         +'<span style="color:#c49a2b">&#9998;</span> Editar Lançamento #'+(i+1)+'</div>'
 
-        +'<label style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;color:#6b4c2a;display:block;margin-bottom:4px">Qtd. UND</label>'
+        +'<label style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;color:#6b4c2a;display:block;margin-bottom:4px">Embalagem</label>'
+        +'<select id="peEmb" style="width:100%;padding:10px;border:2px solid #e8dccc;border-radius:8px;font-size:14px;margin-bottom:12px;font-family:Montserrat,sans-serif;box-sizing:border-box">'
+        +['lata473','gar500','gar600'].map(function(k){return '<option value="'+k+'"'+((l.emb||'lata473')===k?' selected':'')+'>'+window._PAST_EMB[k].n.replace('Lata','Latas').replace('Garrafa','Garrafas')+'</option>';}).join('')
+        +'</select>'
+        +'<label style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;color:#6b4c2a;display:block;margin-bottom:4px">Qtd. (unidades)</label>'
         +'<input id="peQtd" type="number" min="0" value="'+(l.qtd||0)+'" style="width:100%;padding:10px;border:2px solid #e8dccc;border-radius:8px;font-size:14px;margin-bottom:12px;font-family:Montserrat,sans-serif;box-sizing:border-box">'
 
         +'<label style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;color:#6b4c2a;display:block;margin-bottom:4px">Temperatura (°C)</label>'
@@ -6708,7 +6716,7 @@ window.pastEditarSalvar = function(i){
     var tp=parseFloat(document.getElementById('peTp').value);
     if(isNaN(t)||isNaN(tp)||tp<=0){R8.toast.aviso('Informe temperatura e Tp válidos.');return;}
     if(t<40||t>85){R8.toast.aviso('Temperatura fora do intervalo (40–85°C).');return;}
-    window._pastL[i]={qtd:qtd,temp:t,tp:tp,up:_upCalc(t,tp),upAcum:0,tAcum:0};
+    window._pastL[i]={qtd:qtd,emb:(document.getElementById('peEmb')||{}).value||'lata473',temp:t,tp:tp,up:_upCalc(t,tp),upAcum:0,tAcum:0};
     _pastRecalc();
     pastEditarCancelar();
     pastRenderTabela();
@@ -6822,6 +6830,13 @@ window.pastArqEditar = function(idx){
     window._editandoPastIdx = idx;
     popularSelectLotesDisponveis('pastLote','pastEstilo');
     function setV(id,val){var el=document.getElementById(id);if(el)el.value=val||'';}
+    (function(){
+        var s=document.getElementById('pastLote');
+        if(s && r.lote && r.lote!=='—' && !Array.prototype.some.call(s.options,function(o){return o.value===r.lote;})){
+            var o=document.createElement('option');o.value=r.lote;o.textContent=String(r.lote).replace('|',' · ')+(r.estilo&&r.estilo!=='—'?' — '+r.estilo:'');
+            o.setAttribute('data-estilo',r.estilo||'');s.appendChild(o);
+        }
+    })();
     setV('pastLote', r.lote);
     setV('pastEstilo', r.estilo);
     setV('pastData', r.data);
@@ -6832,7 +6847,9 @@ window.pastArqEditar = function(idx){
     window._pastL = r.leituras ? JSON.parse(JSON.stringify(r.leituras)) : [];
     pastRenderTabela();
     pastRenderResultado();
+    window._pastEntrandoEdicao = true; // avisa a navegação que esta entrada é EDIÇÃO (não zerar o formulário)
     irParaTelaERP('telaPasteurizacao');
+    window._pastEntrandoEdicao = false;
     setTimeout(function(){
         var h2=document.querySelector('#telaPasteurizacao h2');
         if(h2) h2.textContent='\u270f\ufe0f Editando \u2014 '+r.lote;
@@ -6932,7 +6949,7 @@ function _gerarPDFPastLayout(r){
         var l=leituras[i]||null;
         x=mL;
         var vals=l?[
-            l.qtd||'',
+            l.qtd?(l.qtd+((window._PAST_EMB[l.emb]||{}).a?' '+window._PAST_EMB[l.emb].a:'')):'',
             l.temp?l.temp.toFixed(1):'',
             l.tp||'',
             l.tAcum||'',
@@ -7811,7 +7828,21 @@ window.irParaTelaERP = function(id) {
     if(id==='telaVendasTAP') { popularSelectLotesDisponveis('vendaLoteTAP','vendaEstiloTAP'); aplicarFiltrosVendasTAP(); let d=document.getElementById('vendaDataTAP'); if(d&&!d.value)d.value=obterData(); }
     if(id==='telaEnvase') { popularSelectLoteEnvase(); atualizarListaEnvase(); }
     if(id==='telaSanitizacao') { _renderFilaSanitizacaoPendente(); popularSelectEquipamentoSanitizacao(); popularSelectProdutoSanitizacao(); _toggleTipoLocalSanit(); atualizarListaSanitizacao(); }
-    if(id==='telaPasteurizacao'){if(window._editandoPastIdx===undefined)window._editandoPastIdx=null;window._pastL=[];popularSelectLotesDisponveis('pastLote','pastEstilo');document.getElementById('pastData').value=obterData();pastRenderTabela();pastRenderResultado();}
+    if(id==='telaPasteurizacao'){
+        if(window._editandoPastIdx===undefined)window._editandoPastIdx=null;
+        // Qualquer entrada que NÃO venha de "Editar" é registro novo (evita abrir um registro novo
+        // com os dados de uma edição que o usuário abandonou sem salvar).
+        if(!window._pastEntrandoEdicao) window._editandoPastIdx=null;
+        if(window._editandoPastIdx===null){
+            // Registro NOVO: zera o formulário. Em EDIÇÃO (vindo de pastArqEditar) não pode
+            // zerar — as leituras, lote e data já foram carregados do registro salvo.
+            window._pastL=[];popularSelectLotesDisponveis('pastLote','pastEstilo');document.getElementById('pastData').value=obterData();
+            var _h2n=document.querySelector('#telaPasteurizacao h2');if(_h2n)_h2n.textContent='Nova Pasteurização';
+            var _bgn=document.querySelector('#telaPasteurizacao .btn-salvar');if(_bgn)_bgn.innerHTML='<i class="fas fa-save"></i> Gravar Registro de Pasteurização';
+        }
+        pastRenderTabela();pastRenderResultado();
+        if(typeof _pastCronTick==='function')_pastCronTick();
+    }
     if(id==='telaPastArquivados'){pastRenderHistorico();}
     if(id==='telaPastDashboard'){setTimeout(window._renderPastDashboard, 80);}
     if(id==='telaSubEstoque'||id==='telaGestao'){setTimeout(window._renderizarAlertasEstoque, 80);}
@@ -8894,7 +8925,7 @@ window.gerarQREquipamento = function(codigo, containerId) {
     if (!t) { R8.toast.erro('Equipamento não encontrado.'); return; }
 
     containerId = containerId || 'qrTanqueContainer';
-    var url = 'https://rota8cervejaria.github.io/bergwolf/?equipamento=' + encodeURIComponent(codigo);
+    var url = window.R8_URL_QR+'?equipamento=' + encodeURIComponent(codigo);
     var c = document.getElementById(containerId);
     var imgId = '_qrTanqueImg_' + containerId, btnId = '_btnPdfTanque_' + containerId;
     if (c) {
@@ -12122,7 +12153,7 @@ window.atualizarLocalizacaoBarris = function() {
 
     function _linhaBarril(item) {
         var b = item.b;
-        var url = 'https://rota8cervejaria.github.io/bergwolf/?barril=' + encodeURIComponent(b.codigo);
+        var url = window.R8_URL_QR+'?barril=' + encodeURIComponent(b.codigo);
         return '<div class="item-lista" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
             + '<span style="flex:1;min-width:0;white-space:normal;word-break:break-word">'
             + '<strong>' + R8.esc(b.codigo) + '</strong>'
@@ -12267,7 +12298,7 @@ window.gerarQRBarril = function(codigo, containerId) {
     if (!b) { R8.toast.erro('Barril não encontrado.'); return; }
 
     containerId = containerId || 'qrBarrilContainer';
-    var url = 'https://rota8cervejaria.github.io/bergwolf/?barril=' + encodeURIComponent(codigo);
+    var url = window.R8_URL_QR+'?barril=' + encodeURIComponent(codigo);
     var c = document.getElementById(containerId);
     var imgId = '_qrBarrilImg_' + containerId, btnId = '_btnPdfBarril_' + containerId;
     if (c) {
@@ -12294,7 +12325,7 @@ window.gerarQRBarril = function(codigo, containerId) {
 // ?local=camarafria, que mostra a situação agregada de barris no momento
 // do escaneamento (ver window.mostrarLocalizacaoCamaraFriaPub).
 window.gerarQRCamaraFria = function() {
-    var url = 'https://rota8cervejaria.github.io/bergwolf/?local=camarafria';
+    var url = window.R8_URL_QR+'?local=camarafria';
     var c = document.getElementById('qrCamaraFriaContainer');
     if (!c) return;
     c.innerHTML = '<div style="background:#fff;border:1.5px solid #c49a2b;border-radius:14px;padding:16px;display:inline-block">'
@@ -13862,7 +13893,7 @@ function atualizarProdutosRastreio(){
     var specs=[];
     c.innerHTML=lista.map(function(f,i){
         var thumbId='thumbProd_'+i;
-        specs.push({id:thumbId,url:'https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(f.lote)});
+        specs.push({id:thumbId,url:window.R8_URL_QR+'?lote='+encodeURIComponent(f.lote)});
         return '<div class="rastreio-card">'
             + '<div class="rastreio-qr-thumb" id="'+thumbId+'" title="Ampliar QR Code" onclick="gerarQRProduto(\'' + R8.esc(f.lote) + '\')"><i class="fas fa-spinner fa-spin"></i></div>'
             + '<div class="rc-info">'
@@ -13951,7 +13982,7 @@ window.gerarQRProduto=function(lote){
     // completa do lote, que já traz Ficha Técnica (insumos, mosturação,
     // linha do tempo), Barris (destino de cada unidade — Câmara Fria/PDV/
     // TAP) e Movimentações (Entrada/Saída/Saldo) — tudo em 1 único escaneio.
-    var url='https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(lote);
+    var url=window.R8_URL_QR+'?lote='+encodeURIComponent(lote);
     var c=document.getElementById('qrcodeContainer');
     c.innerHTML='<p style="font-size:12px;margin-bottom:8px;font-weight:bold">Lote: '+lote+'</p>'
         +'<div id="_qrProdutoImg" style="min-height:60px;display:flex;align-items:center;justify-content:center"><i class="fas fa-spinner fa-spin" style="color:#94a3b8"></i></div>'
@@ -13964,7 +13995,7 @@ window.gerarQRProduto=function(lote){
 };
 window.gerarQRFicha=function(lote){
     var f=dadosERP.fichasTecnicas.find(function(x){return x.lote===lote;});if(!f)return;
-    var url='https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(lote);
+    var url=window.R8_URL_QR+'?lote='+encodeURIComponent(lote);
     var label='Ficha: '+lote+' — '+f.estilo;
     var c=document.getElementById('qrFichaContainer');
     c.innerHTML='<p style="font-size:12px;margin-bottom:8px;font-weight:bold">'+label+'</p>'
@@ -13978,7 +14009,7 @@ window.gerarQRFicha=function(lote){
 };
 window.gerarQRFichaInversa=function(lote){
     var f=dadosERP.fichasTecnicas.find(function(x){return x.lote===lote;});if(!f)return;
-    var url='https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(lote);
+    var url=window.R8_URL_QR+'?lote='+encodeURIComponent(lote);
     var label='Ficha: '+lote+' — '+f.estilo;
     var c=document.getElementById('qrInversaContainer');
     c.innerHTML='<p style="font-size:12px;margin-bottom:8px;font-weight:bold">'+label+'</p>'
@@ -13999,7 +14030,7 @@ function atualizarFichasRastreio(){
     var specs=[];
     c.innerHTML=dadosERP.fichasTecnicas.map(function(f,i){
         var thumbId='thumbFicha_'+i;
-        specs.push({id:thumbId,url:'https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(f.lote)});
+        specs.push({id:thumbId,url:window.R8_URL_QR+'?lote='+encodeURIComponent(f.lote)});
         return '<div class="rastreio-card">'
             + '<div class="rastreio-qr-thumb" id="'+thumbId+'" title="Ampliar QR Code" data-lote="' + R8.esc(f.lote) + '" onclick="gerarQRFicha(this.getAttribute(\'data-lote\'))"><i class="fas fa-spinner fa-spin"></i></div>'
             + '<div class="rc-info">'
@@ -14027,8 +14058,8 @@ window._r8UrlQRVenda=function(v){
     // Barril com código individual: aponta pro Destino do Barril (histórico
     // de todas as saídas daquele barril). Sem código individual: aponta
     // direto pra esta venda/transferência específica (não o lote inteiro).
-    if(v.embalagemCodigo) return 'https://rota8cervejaria.github.io/bergwolf/?barril='+encodeURIComponent(v.embalagemCodigo);
-    return 'https://rota8cervejaria.github.io/bergwolf/?venda='+encodeURIComponent(v.id||'');
+    if(v.embalagemCodigo) return window.R8_URL_QR+'?barril='+encodeURIComponent(v.embalagemCodigo);
+    return window.R8_URL_QR+'?venda='+encodeURIComponent(v.id||'');
 };
 function atualizarVendasRastreio(){
     window._r8MigrarIdsVendas();
@@ -14077,7 +14108,7 @@ window.gerarQRVenda=function(idx){
 window.gerarEtiquetaPDF=function(lote){
     var f=dadosERP.fichasTecnicas.find(function(x){return x.lote===lote;});
     if(!f){R8.toast.erro('Ficha não encontrada.');return;}
-    var url='https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(lote);
+    var url=window.R8_URL_QR+'?lote='+encodeURIComponent(lote);
     r8QRComLogo(url,4).then(function(qrResult){
     var qrSrc=qrResult.dataUrl;
     // Perfil sensorial do estilo
@@ -14155,7 +14186,7 @@ window.gerarEtiquetaPDF=function(lote){
     }
     // URL
     pdf.setTextColor(120,100,60);pdf.setFontSize(6);pdf.setFont('helvetica','normal');
-    pdf.text('rota8cervejaria.github.io/bergwolf',rx+(W-rx)/2,ry,{align:'center'});ry+=6;
+    pdf.text(String(window.R8_URL_QR||'').replace(/^https?:\/\//,''),rx+(W-rx)/2,ry,{align:'center'});ry+=6;
     // Lote abaixo do QR
     pdf.setTextColor(196,154,43);pdf.setFontSize(11);pdf.setFont('helvetica','bold');
     pdf.text(f.lote,rx+(W-rx)/2,ry,{align:'center'});
@@ -14270,7 +14301,7 @@ window.filtrarProdutosRastreio=function(){
     var specs=[];
     c.innerHTML=lista.map(function(f,i){
         var thumbId='thumbProd_'+i;
-        specs.push({id:thumbId,url:'https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(f.lote)});
+        specs.push({id:thumbId,url:window.R8_URL_QR+'?lote='+encodeURIComponent(f.lote)});
         return '<div class="rastreio-card">'
             + '<div class="rastreio-qr-thumb" id="'+thumbId+'" title="Ampliar QR Code" onclick="gerarQRProduto(\'' + R8.esc(f.lote) + '\')"><i class="fas fa-spinner fa-spin"></i></div>'
             + '<div class="rc-info">'
@@ -16677,7 +16708,7 @@ window.mostrarLocalizacaoLotePub = function(lote) {
                 + '</div>';
             return;
         }
-        var qrUrl = 'https://rota8cervejaria.github.io/bergwolf/?lote=' + encodeURIComponent(f.lote);
+        var qrUrl = window.R8_URL_QR+'?lote=' + encodeURIComponent(f.lote);
         c.innerHTML = '<div class="pub-screen">'
             + _pubHeader('Localização do Lote', 'window._qrModoAtivo=false;mostrarLandingPage()')
             + '<div class="pub-hero">'
@@ -17148,7 +17179,7 @@ function _renderizarConteudoLote(container, f) {
     }
 
     // QR com logo Rota 8 centralizado
-    var qrUrl = 'https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(lote);
+    var qrUrl = window.R8_URL_QR+'?lote='+encodeURIComponent(lote);
 
     container.innerHTML = '<div class="pub-screen">'
         + _pubHeader('Rastreabilidade', 'window._qrModoAtivo=false;mostrarLandingPage()')
@@ -17723,7 +17754,7 @@ window.atualizarRastreioInverso = function() {
     resultados.forEach(function(r,idx) {
         var f = r.ficha;
         var thumbId='thumbInv_'+idx;
-        specs.push({id:thumbId,url:'https://rota8cervejaria.github.io/bergwolf/?lote='+encodeURIComponent(f.lote)});
+        specs.push({id:thumbId,url:window.R8_URL_QR+'?lote='+encodeURIComponent(f.lote)});
         h += '<div class="rastreio-card" style="align-items:flex-start;flex-wrap:wrap">';
         h += '<div class="rastreio-qr-thumb" id="'+thumbId+'" title="Ampliar QR Code" data-lote="'+R8.esc(f.lote)+'" onclick="gerarQRFichaInversa(this.getAttribute(\'data-lote\'))"><i class="fas fa-spinner fa-spin"></i></div>';
         h += '<div class="rc-info">';
@@ -20246,7 +20277,11 @@ if(document.readyState === 'loading'){
             </div>
             <div class="past-grid-lancamento">
                 <div class="past-campo">
-                    <label class="past-label">Qtd. UND</label>
+                    <label class="past-label">Embalagem</label>
+                    <select id="pastEmb" class="past-input"><option value="lata473">Latas 473 ml</option><option value="gar500">Garrafas 500 ml</option><option value="gar600">Garrafas 600 ml</option></select>
+                </div>
+                <div class="past-campo">
+                    <label class="past-label">Qtd. (unidades)</label>
                     <input type="number" step="1" min="0" id="pastQtd" class="past-input" placeholder="24">
                 </div>
                 <div class="past-campo">
