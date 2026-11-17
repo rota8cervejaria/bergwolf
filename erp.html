@@ -10851,10 +10851,131 @@ window._renderFilaSanitizacaoPendente = function() {
         + '</div>';
 };
 
+// ── Locais de Instalação (multi-seleção) ──────────────────────────
+window._SANIT_LOCAIS_INSTAL = [
+    'Pia de Higienização','Piso da Sala de Produção','Paredes da Sala de Produção','Dreno/Ralo',
+    'Área de Envase','Câmara Fria','Sala de Maturação/Adega','Sala de Malte','Banheiro/Vestiário',
+    'Limpeza de Bancadas','Limpeza das Lixeiras','Limpeza da Caixa de Água','Controle de Vetores e Pragas','Outro'
+];
+// Locais em que o produto sanitizante é opcional (ex.: dedetização feita por empresa terceirizada)
+window._SANIT_LOCAIS_SEM_PRODUTO = ['Controle de Vetores e Pragas'];
+// Registros antigos usavam "Sala de Maturação" — agrupados com "Sala de Maturação/Adega" na exibição/PDF
+window._sanitNormLocal = function(t) {
+    return String(t == null ? '' : t).replace(/\bSala de Maturação(?!\/Adega)\b/g, 'Sala de Maturação/Adega');
+};
+window._sanitRenderLocaisInstal = function(limpar) {
+    var c = document.getElementById('sanitizacaoLocaisInstal'); if (!c) return;
+    var marcados = {};
+    if (!limpar) c.querySelectorAll('input[type=checkbox]:checked').forEach(function(x){ marcados[x.value] = true; });
+    c.innerHTML = window._SANIT_LOCAIS_INSTAL.map(function(l) {
+        return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#2c1810;background:#fff;border:1.5px solid #e0d8ce;border-radius:9px;padding:8px 10px;margin:0;cursor:pointer">'
+             + '<input type="checkbox" value="' + R8.esc(l) + '"' + (marcados[l] ? ' checked' : '') + ' onchange="_sanitLocaisChange()" style="width:18px;height:18px;margin:0;flex:none"> ' + R8.esc(l) + '</label>';
+    }).join('');
+};
+window._SANIT_PRAGAS = ['Baratas','Ratos/Roedores','Moscas','Mosquitos','Formigas','Aranhas/Escorpiões','Cupins','Outras'];
+window._sanitRenderPragas = function(limpar) {
+    var c = document.getElementById('sanitVetPragas'); if (!c) return;
+    var marc = {}; if (!limpar) c.querySelectorAll('input:checked').forEach(function(x){ marc[x.value] = true; });
+    c.innerHTML = window._SANIT_PRAGAS.map(function(l) {
+        return '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:#2c1810;background:#fff;border:1.5px solid #e0d8ce;border-radius:9px;padding:7px 9px;margin:0;cursor:pointer">'
+             + '<input type="checkbox" value="' + R8.esc(l) + '"' + (marc[l] ? ' checked' : '') + ' onchange="_sanitLocaisChange()" style="width:18px;height:18px;margin:0;flex:none"> ' + R8.esc(l) + '</label>';
+    }).join('');
+};
+window._sanitVetoresSelecionado = function() {
+    var v = document.querySelector('#sanitizacaoLocaisInstal input[value="Controle de Vetores e Pragas"]');
+    return !!(v && v.checked);
+};
+window._sanitLocaisChange = function() {
+    var o = document.querySelector('#sanitizacaoLocaisInstal input[value="Outro"]');
+    var t = document.getElementById('sanitizacaoLocalOutro');
+    if (t) t.style.display = (o && o.checked) ? '' : 'none';
+    // Caixa de dados da empresa de controle de pragas
+    var vb = document.getElementById('sanitVetoresBox'), vs = _sanitVetoresSelecionado();
+    if (vb) {
+        vb.style.display = vs ? '' : 'none';
+        if (vs) {
+            if (!document.getElementById('sanitVetPragas').children.length) _sanitRenderPragas();
+            var vd = document.getElementById('sanitVetData'); if (vd && !vd.value) { var _n = new Date(); vd.value = _n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0'); }
+        }
+    }
+    var po = document.querySelector('#sanitVetPragas input[value="Outras"]');
+    var to = document.getElementById('sanitVetOutras');
+    if (to) to.style.display = (po && po.checked) ? '' : 'none';
+    // Se só "Controle de Vetores e Pragas" está marcado, não há produto/etapa a lançar
+    var marcados = _sanitLocaisSelecionados();
+    var soVet = marcados.length > 0 && marcados.every(function(l){ return _SANIT_LOCAIS_SEM_PRODUTO.indexOf(l) !== -1; });
+    var ew = document.getElementById('sanitEtapasWrap'), eb = document.getElementById('sanitAddEtapaBtn');
+    if (ew) ew.style.display = soVet ? 'none' : '';
+    if (eb) eb.style.display = soVet ? 'none' : '';
+};
+window._sanitLocaisSelecionados = function() {
+    var out = [];
+    document.querySelectorAll('#sanitizacaoLocaisInstal input[type=checkbox]:checked').forEach(function(x) {
+        if (x.value === 'Outro') {
+            var d = (document.getElementById('sanitizacaoLocalOutro')?.value || '').trim();
+            out.push(d ? 'Outro: ' + d : 'Outro');
+        } else out.push(x.value);
+    });
+    return out;
+};
+
+// ── Etapas (vários produtos na mesma sanitização) ──────────────────
+function _sanitOptsProdutos() {
+    var opts = '<option value="">Selecione</option>';
+    (dadosERP.produtosLimpeza||[]).forEach(function(p){
+        opts += '<option value="'+R8.esc(p.codigo)+'">'+R8.esc(p.codigo)+' - '+R8.esc(p.descricao)+' ('+R8.esc(p.tipo||'-')+') · Lote: '+R8.esc(p.lote||'-')+'</option>';
+    });
+    return opts;
+}
+function _sanitEtapaHTML(n) {
+    return '<div class="sanit-etapa" style="background:#fffaf0;border:1.5px solid #ecd9a6;border-radius:12px;padding:10px 12px;margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+        + '<strong class="sanit-etapa-tit" style="font-size:12.5px;color:#7a5a14"></strong>'
+        + '<button type="button" class="sanit-etapa-rem" onclick="_sanitRemEtapa(this)" style="border:none;background:#fee2e2;color:#991b1b;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer"><i class="fas fa-trash"></i> Remover</button></div>'
+        + '<div class="campo-linha"><label>Produto Sanitizante</label><select class="sanit-et-prod">' + _sanitOptsProdutos() + '</select></div>'
+        + '<div class="linha-dupla"><div><label>Concentração (%)</label><input type="number" step="0.1" class="sanit-et-conc" placeholder="-"></div>'
+        + '<div><label>Tempo de Contato (min)</label><input type="number" class="sanit-et-tempo" placeholder="-"></div></div>'
+        + '<div class="campo-linha"><label>Quantidade do Produto (ml)</label><input type="number" step="1" class="sanit-et-qtd" placeholder="-"></div>'
+        + '</div>';
+}
+window._sanitRenumEtapas = function() {
+    var bl = document.querySelectorAll('#sanitEtapasWrap .sanit-etapa');
+    bl.forEach(function(b, i) {
+        var t = b.querySelector('.sanit-etapa-tit'); if (t) t.textContent = bl.length > 1 ? (i+1) + 'ª etapa' : 'Produto / Etapa';
+        var r = b.querySelector('.sanit-etapa-rem'); if (r) r.style.display = (bl.length > 1) ? '' : 'none';
+    });
+};
+window._sanitAddEtapa = function() {
+    var w = document.getElementById('sanitEtapasWrap'); if (!w) return;
+    w.insertAdjacentHTML('beforeend', _sanitEtapaHTML());
+    _sanitRenumEtapas();
+};
+window._sanitRemEtapa = function(btn) {
+    var b = btn && btn.closest('.sanit-etapa'); if (b) b.remove();
+    _sanitRenumEtapas();
+};
+window._sanitResetEtapas = function() {
+    var w = document.getElementById('sanitEtapasWrap'); if (!w) return;
+    w.innerHTML = '';
+    _sanitAddEtapa();
+};
+function _sanitLerEtapas() {
+    var out = [];
+    document.querySelectorAll('#sanitEtapasWrap .sanit-etapa').forEach(function(b) {
+        out.push({
+            prodCod: b.querySelector('.sanit-et-prod')?.value || '',
+            conc:    b.querySelector('.sanit-et-conc')?.value || '',
+            tempo:   b.querySelector('.sanit-et-tempo')?.value || '',
+            qtdML:   parseFloat(b.querySelector('.sanit-et-qtd')?.value) || 0
+        });
+    });
+    return out;
+}
+
 function adicionarSanitizacaoERP(){
     var data = document.getElementById('sanitizacaoData')?.value || obterData();
     var tipoLocal = document.getElementById('sanitizacaoTipoLocal')?.value || 'equipamento';
-    var equip = '', local = '';
+    var equip = '', local = '', locais = null;
     var barrilAlvo = null;
     if (tipoLocal === 'equipamento') {
         equip = document.getElementById('sanitizacaoEquipamento')?.value;
@@ -10868,8 +10989,10 @@ function adicionarSanitizacaoERP(){
         barrilAlvo = (dadosERP.barris || []).find(function(b){ return b.codigo === codSel; });
         if (barrilAlvo) tipoLocal = 'barril';
     } else if (tipoLocal === 'instalacao') {
-        local = document.getElementById('sanitizacaoLocalInstal')?.value;
-        if (!local) { R8.toast.aviso('Selecione o local da instalação sanitária.'); return; }
+        locais = _sanitLocaisSelecionados();
+        if (!locais.length) { R8.toast.aviso('Selecione ao menos um local da instalação.'); return; }
+        local = locais.join(' + ');
+        equip = local;
     } else if (tipoLocal === 'envase') {
         var item = document.getElementById('sanitizacaoLocalEnvase')?.value;
         if (!item) { R8.toast.aviso('Selecione o item envasado.'); return; }
@@ -10890,42 +11013,82 @@ function adicionarSanitizacaoERP(){
             local = item + (unidades > 0 ? ' — ' + unidades + ' un.' : '');
         }
     }
-    var prodCod = document.getElementById('sanitizacaoProduto')?.value;
-    if (!prodCod) { R8.toast.aviso('Selecione o produto sanitizante.'); return; }
-    var prodObj = (dadosERP.produtosLimpeza||[]).find(function(p){ return p.codigo === prodCod; });
-    var qtdUsadaML = parseFloat(document.getElementById('sanitizacaoQtdML')?.value) || 0;
-    var reg = {
-        id:          R8.novoId(),
-        data:        data,
-        tipoLocal:   tipoLocal,
-        equipamento: equip,
-        local:       local,
-        produto:     prodObj ? prodObj.descricao : prodCod,
-        produtoCodigo: prodCod,
-        lote:        prodObj ? (prodObj.lote||'') : '',
-        concentracao:document.getElementById('sanitizacaoConcentracao')?.value || '',
-        tempo:       document.getElementById('sanitizacaoTempo')?.value || '',
-        qtdUtilizadaML: qtdUsadaML,
-        responsavel: document.getElementById('sanitizacaoResponsavel')?.value || '',
-        obs:         document.getElementById('sanitizacaoObs')?.value || ''
-    };
-    dadosERP.sanitizacoes.push(reg);
+
+    // Etapas: cada produto/etapa vira um registro, todos ligados pelo mesmo grupoId
+    // (relatório unificado). O formato de cada registro continua o mesmo de antes.
+    var etapas = _sanitLerEtapas();
+    var soSemProduto = locais && locais.length && locais.every(function(l){ return _SANIT_LOCAIS_SEM_PRODUTO.indexOf(l) !== -1; });
+    if (soSemProduto) etapas = [{ prodCod:'', conc:'', tempo:'', qtdML:0 }]; // só Vetores e Pragas: sem produto/etapas
+    // Dados do Controle de Vetores e Pragas (data, empresa, pragas combatidas)
+    var vetores = null;
+    if (tipoLocal === 'instalacao' && locais && locais.indexOf('Controle de Vetores e Pragas') !== -1) {
+        var vData = document.getElementById('sanitVetData')?.value || '';
+        var vEmp  = (document.getElementById('sanitVetEmpresa')?.value || '').trim();
+        var vPr   = [];
+        document.querySelectorAll('#sanitVetPragas input:checked').forEach(function(x){
+            if (x.value === 'Outras') { var o = (document.getElementById('sanitVetOutras')?.value || '').trim(); vPr.push(o ? o : 'Outras'); }
+            else vPr.push(x.value);
+        });
+        if (!vData) { R8.toast.aviso('Informe a data de realização do controle de pragas.'); return; }
+        if (!vEmp)  { R8.toast.aviso('Informe a empresa que realizou o controle de pragas.'); return; }
+        if (!vPr.length) { R8.toast.aviso('Marque ao menos uma praga combatida.'); return; }
+        vetores = { dataRealizacao: vData, empresa: vEmp, pragas: vPr };
+        if (soSemProduto) data = vData; // o registro vale na data em que o serviço foi feito
+    }
+    for (var k = 0; k < etapas.length; k++) {
+        if (!etapas[k].prodCod && !(soSemProduto && etapas.length === 1)) {
+            R8.toast.aviso(etapas.length > 1 ? ('Selecione o produto sanitizante da ' + (k+1) + 'ª etapa.') : 'Selecione o produto sanitizante.');
+            return;
+        }
+    }
+    var responsavel = document.getElementById('sanitizacaoResponsavel')?.value || '';
+    var obs = document.getElementById('sanitizacaoObs')?.value || '';
+    var grupoId = R8.novoId();
+    var algumEstoque = false;
+
+    etapas.forEach(function(et, k) {
+        var prodCod = et.prodCod;
+        var prodObj = (dadosERP.produtosLimpeza||[]).find(function(p){ return p.codigo === prodCod; });
+        var qtdUsadaML = et.qtdML;
+        var reg = {
+            id:          R8.novoId(),
+            grupoId:     grupoId,
+            etapa:       k + 1,
+            etapasTotal: etapas.length,
+            data:        data,
+            tipoLocal:   tipoLocal,
+            equipamento: equip,
+            local:       local,
+            produto:     prodObj ? prodObj.descricao : (prodCod || '— (sem produto)'),
+            produtoCodigo: prodCod,
+            lote:        prodObj ? (prodObj.lote||'') : '',
+            concentracao:et.conc,
+            tempo:       et.tempo,
+            qtdUtilizadaML: qtdUsadaML,
+            responsavel: responsavel,
+            obs:         obs
+        };
+        if (locais && locais.length > 1) reg.locais = locais.slice();
+        if (vetores) reg.vetores = JSON.parse(JSON.stringify(vetores));
+        dadosERP.sanitizacoes.push(reg);
+        if (prodObj && qtdUsadaML > 0) {
+            algumEstoque = true;
+            var qtdLitros = qtdUsadaML/1000;
+            var saldoAntesLimp = prodObj.qtd||0;
+            prodObj.qtd = Math.max(0, saldoAntesLimp - qtdLitros);
+            if (!dadosERP.movimentacoesEstoque) dadosERP.movimentacoesEstoque = [];
+            dadosERP.movimentacoesEstoque.push({
+                id: Date.now()+'_sanit_'+prodCod+'_'+k, data: obterDataHora(), tipo:'saida',
+                categoria: 'limpeza', codigo: prodCod, descricao: prodObj.descricao, tipoInsumo: prodObj.tipo,
+                quantidade: qtdLitros, unidade: 'L', lote: prodObj.lote||'',
+                origem: 'Sanitização — ' + (local || tipoLocal || 'Uso') + (etapas.length > 1 ? ' (' + (k+1) + 'ª etapa)' : ''),
+                saldoAnterior: saldoAntesLimp, saldoAtual: prodObj.qtd
+            });
+        }
+    });
     if (barrilAlvo && barrilAlvo.status === 'Aguardando Sanitização') {
         barrilAlvo.status = 'Disponível';
         barrilAlvo.loteAtual = '';
-    }
-    if (prodObj && qtdUsadaML > 0) {
-        var qtdLitros = qtdUsadaML/1000;
-        var saldoAntesLimp = prodObj.qtd||0;
-        prodObj.qtd = Math.max(0, saldoAntesLimp - qtdLitros);
-        if (!dadosERP.movimentacoesEstoque) dadosERP.movimentacoesEstoque = [];
-        dadosERP.movimentacoesEstoque.push({
-            id: Date.now()+'_sanit_'+prodCod, data: obterDataHora(), tipo:'saida',
-            categoria: 'limpeza', codigo: prodCod, descricao: prodObj.descricao, tipoInsumo: prodObj.tipo,
-            quantidade: qtdLitros, unidade: 'L', lote: prodObj.lote||'',
-            origem: 'Sanitização — ' + (local || tipoLocal || 'Uso'),
-            saldoAnterior: saldoAntesLimp, saldoAtual: prodObj.qtd
-        });
     }
     salvarDadosFirebase();
     fecharFormERP('formSanitizacao');
@@ -10936,7 +11099,13 @@ function adicionarSanitizacaoERP(){
     _popularFiltroEquipSanit();
     atualizarListaSanitizacao();
     atualizarEstoqueLimpezaERP();
-    R8.toast.ok('Sanitização registrada'+(prodObj&&qtdUsadaML>0?' e estoque atualizado!':'!'));
+    // limpa o formulário para o próximo lançamento
+    _sanitResetEtapas();
+    _sanitRenderLocaisInstal(true);
+    _sanitRenderPragas(true);
+    ['sanitizacaoLocalOutro','sanitizacaoObs','sanitVetData','sanitVetEmpresa','sanitVetOutras'].forEach(function(id){ var e = document.getElementById(id); if (e) e.value = ''; });
+    _sanitLocaisChange();
+    R8.toast.ok('Sanitização registrada'+(etapas.length>1?' ('+etapas.length+' etapas)':'')+(algumEstoque?' e estoque atualizado!':'!'));
 }
 
 function _popularFiltroEquipSanit() {
@@ -11003,35 +11172,50 @@ function atualizarListaSanitizacao(){
     var filtroEquip = document.getElementById('filtroEquipSanit')?.value || '';
     var filtroMes   = document.getElementById('filtroMesSanit')?.value || '';
 
-    var lista = (dadosERP.sanitizacoes||[]).filter(function(s) {
+    var filtrados = (dadosERP.sanitizacoes||[]).filter(function(s) {
         var matchEquip = !filtroEquip || s.equipamento === filtroEquip;
         var matchMes   = !filtroMes  || (s.data && s.data.slice(0,7) === filtroMes);
         return matchEquip && matchMes;
-    }).slice().reverse();
+    });
+    // Agrupa as etapas de uma mesma sanitização (grupoId) em um único card
+    var cards = [], porGrupo = {};
+    filtrados.forEach(function(s) {
+        if (s.grupoId) {
+            if (porGrupo[s.grupoId]) { porGrupo[s.grupoId].regs.push(s); return; }
+            porGrupo[s.grupoId] = { regs:[s] }; cards.push(porGrupo[s.grupoId]);
+        } else cards.push({ regs:[s] });
+    });
+    cards.reverse();
 
-    if (!lista.length) {
+    if (!cards.length) {
         c.innerHTML = '<div class="card-item" style="text-align:center;color:#999">Nenhum registro encontrado.</div>';
         return;
     }
 
-    c.innerHTML = lista.map(function(s) {
+    c.innerHTML = cards.map(function(cd) {
+        var s = cd.regs[0];
         var iReal = dadosERP.sanitizacoes.indexOf(s);
         var dias  = _diasDesdeData(s.data);
         var vencida = s.intervalo > 0 && dias !== null && dias > s.intervalo;
         var bord = vencida ? '4px solid #ef4444' : '4px solid #10b981';
+        var multi = cd.regs.length > 1;
+        var etapasHtml = cd.regs.map(function(r, k) {
+            if (r.vetores && !r.produtoCodigo) return '';
+            return '<div style="margin-top:'+(k?'6':'8')+'px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+                + (multi ? '<span style="font-size:11px;font-weight:800;color:#7a5a14;background:#fdf3d6;padding:2px 7px;border-radius:5px">'+(r.etapa||k+1)+'ª etapa</span>' : '')
+                + '<span style="font-size:11px;background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:6px">'+R8.esc(r.produto)+(r.lote?' · Lote: '+R8.esc(r.lote):'')+'</span>'
+                + (r.concentracao ? '<span style="font-size:11px;color:#6b5b4e;background:#f9f5ee;padding:2px 7px;border-radius:5px">'+r.concentracao+'% conc.</span>' : '')
+                + (r.tempo        ? '<span style="font-size:11px;color:#6b5b4e;background:#f9f5ee;padding:2px 7px;border-radius:5px">'+r.tempo+' min</span>' : '')
+                + '</div>';
+        }).join('');
         return '<div class="sanit-card" style="border-left:'+bord+'">'
-            + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">'
-            + '  <div>'
-            + '    <div style="font-weight:700;font-size:13px;color:#2c1810">'+R8.esc(s.local||s.equipamento||'-')+'</div>'
+            + '<div>'
+            + '    <div style="font-weight:700;font-size:13px;color:#2c1810">'+R8.esc(_sanitNormLocal(s.local||s.equipamento||'-'))+'</div>'
             + '    <div style="font-size:11px;color:#888;margin-top:2px">'+formatarData(s.data)+(s.horaPreparo?' · Preparo: '+s.horaPreparo:'')+(s.responsavel?' · '+R8.esc(s.responsavel):'')+'</div>'
-            + '  </div>'
-            + '  <span style="font-size:11px;background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:6px;white-space:nowrap">'+R8.esc(s.produto)+(s.lote?' · Lote: '+R8.esc(s.lote):'')+'</span>'
             + '</div>'
-            + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
-            + (s.concentracao ? '<span style="font-size:11px;color:#6b5b4e;background:#f9f5ee;padding:2px 7px;border-radius:5px">'+s.concentracao+'% conc.</span>' : '')
-            + (s.tempo        ? '<span style="font-size:11px;color:#6b5b4e;background:#f9f5ee;padding:2px 7px;border-radius:5px">'+s.tempo+' min</span>' : '')
-            + (s.intervalo    ? '<span style="font-size:11px;color:'+(vencida?'#991b1b':'#065f46')+';background:'+(vencida?'#fef2f2':'#d1fae5')+';padding:2px 7px;border-radius:5px;font-weight:700">'+(vencida?'⚠ '+dias+'d (vence a cada '+s.intervalo+'d)':'✓ '+s.intervalo+'d/intervalo')+'</span>' : '')
-            + '</div>'
+            + etapasHtml
+            + (s.vetores ? '<div style="margin-top:8px;font-size:11.5px;color:#075985;background:#f0f9ff;border-radius:8px;padding:6px 9px;line-height:1.5"><i class="fas fa-bug"></i> <strong>Realizado em:</strong> '+formatarData(s.vetores.dataRealizacao)+'<br><strong>Empresa:</strong> '+R8.esc(s.vetores.empresa)+'<br><strong>Pragas combatidas:</strong> '+R8.esc((s.vetores.pragas||[]).join(', '))+'</div>' : '')
+            + (s.intervalo    ? '<div style="margin-top:6px"><span style="font-size:11px;color:'+(vencida?'#991b1b':'#065f46')+';background:'+(vencida?'#fef2f2':'#d1fae5')+';padding:2px 7px;border-radius:5px;font-weight:700">'+(vencida?'⚠ '+dias+'d (vence a cada '+s.intervalo+'d)':'✓ '+s.intervalo+'d/intervalo')+'</span></div>' : '')
             + (s.obs ? '<div style="font-size:11px;color:#888;font-style:italic;margin-top:6px">'+R8.esc(s.obs)+'</div>' : '')
             + '<div style="display:flex;justify-content:flex-end;margin-top:8px">'
             + '  <button class="r8-btn-acao r8-btn-excluir" title="Excluir" onclick="excluirSanitizacao('+iReal+')"><i class="fas fa-trash"></i></button>'
@@ -11039,7 +11223,7 @@ function atualizarListaSanitizacao(){
             + '</div>';
     }).join('');
 }
-window.excluirSanitizacao=function(i){confirmarAcao({titulo:'Excluir registro',msg:'Deseja excluir este registro de sanitização?',onConfirm:function(){var s=dadosERP.sanitizacoes[i];dadosERP.sanitizacoes.splice(i,1);salvarDadosFirebase();atualizarListaSanitizacao();registrarAuditoria('Sanitização','excluir','Equipamento: '+((s&&s.equipamento)||'—'));}});};
+window.excluirSanitizacao=function(i){var s0=dadosERP.sanitizacoes[i];var nGrp=(s0&&s0.grupoId)?dadosERP.sanitizacoes.filter(function(x){return x.grupoId===s0.grupoId;}).length:1;confirmarAcao({titulo:'Excluir registro',msg:nGrp>1?'Deseja excluir este registro de sanitização (todas as '+nGrp+' etapas)?':'Deseja excluir este registro de sanitização?',onConfirm:function(){var s=dadosERP.sanitizacoes[i];if(s&&s.grupoId){dadosERP.sanitizacoes=dadosERP.sanitizacoes.filter(function(x){return x.grupoId!==s.grupoId;});}else{dadosERP.sanitizacoes.splice(i,1);}salvarDadosFirebase();atualizarListaSanitizacao();registrarAuditoria('Sanitização','excluir','Equipamento: '+((s&&s.equipamento)||'—'));}});};
 
 window.adicionarSanitizacaoERP=adicionarSanitizacaoERP;
 function popularSelectEquipamentoSanitizacao(){
@@ -11105,7 +11289,13 @@ function _popularSelectEnvaseBarrilSanit(){
     });
     s.innerHTML = opts;
 }
-function popularSelectProdutoSanitizacao(){var s=document.getElementById('sanitizacaoProduto');if(!s)return;var opts='<option value="">Selecione</option>';(dadosERP.produtosLimpeza||[]).forEach(function(p){opts+='<option value="'+R8.esc(p.codigo)+'">'+R8.esc(p.codigo)+' - '+R8.esc(p.descricao)+' ('+R8.esc(p.tipo||'-')+') · Lote: '+R8.esc(p.lote||'-')+'</option>';});s.innerHTML=opts;}
+function popularSelectProdutoSanitizacao(){
+    var w=document.getElementById('sanitEtapasWrap'); if(!w) return;
+    if(!w.querySelector('.sanit-etapa')){ _sanitResetEtapas(); }
+    else { var o=_sanitOptsProdutos(); w.querySelectorAll('.sanit-et-prod').forEach(function(s){ var v=s.value; s.innerHTML=o; s.value=v; }); }
+    _sanitRenderLocaisInstal();
+    _sanitRenderPragas();
+}
 window.popularSelectProdutoSanitizacao=popularSelectProdutoSanitizacao;
 
 // ENVASE
@@ -14551,6 +14741,7 @@ window._gerarPDFSanitPorTipo=function(tipoLocal,titulo,subtitulo){
     // "livro" completo — uma ficha por equipamento/local.
     var filtroSel = document.getElementById('filtroEquipSanit')?.value || '';
     if (filtroSel) regsTodos = regsTodos.filter(function(s){ return (s.local||s.equipamento)===filtroSel; });
+    var temEtapas = regsTodos.some(function(s){ return s.grupoId && s.etapasTotal > 1; });
 
     // Cada ficha é o histórico completo e cumulativo daquele código/local —
     // um "livro de registro" que só cresce, nunca substitui um lançamento
@@ -14558,15 +14749,45 @@ window._gerarPDFSanitPorTipo=function(tipoLocal,titulo,subtitulo){
     // salvo no registro) — assim Equip. e Barris agrupam exatamente do
     // mesmo jeito, sem depender da descrição estar preenchida/igual em
     // todos os lançamentos daquele mesmo equipamento/barril.
+    // Se o código cadastrado já contém " - " (ex.: "BAR - 014"), o corte no primeiro " - " juntaria
+    // barris diferentes numa ficha só ("BAR"). Primeiro tenta casar com o código inteiro do cadastro.
+    var codigosCadastro = [];
+    (dadosERP.equipamentos||[]).forEach(function(e){ if (e && e.codigo) codigosCadastro.push(String(e.codigo)); });
+    (dadosERP.barris||[]).forEach(function(b){ if (b && b.codigo) codigosCadastro.push(String(b.codigo)); });
+    function codigoCompleto(bruto){
+        var melhor = '';
+        codigosCadastro.forEach(function(c){
+            if ((bruto === c || bruto.indexOf(c + ' - ') === 0) && c.length > melhor.length) melhor = c;
+        });
+        return melhor;
+    }
     var grupos = {};
     regsTodos.forEach(function(s){
-        var bruto = s.local || s.equipamento || '(sem identificação)';
-        var chave = mostrarCodigo ? (_r8CodigoTanqueDoCampo(bruto) || bruto) : bruto;
+        var bruto = _sanitNormLocal(s.local || s.equipamento || '(sem identificação)');
+        var chave = mostrarCodigo ? (codigoCompleto(bruto) || _r8CodigoTanqueDoCampo(bruto) || bruto) : bruto;
         (grupos[chave] = grupos[chave] || []).push(s);
     });
     var chaves = Object.keys(grupos).sort(function(a,b){ return a.localeCompare(b); });
     function paraISO(d){ if(!d) return ''; return d.indexOf('-')>=0 ? d : d.split('/').reverse().join('-').replace(/^(\d{2})/,'20$1'); }
     chaves.forEach(function(chave){ grupos[chave].sort(function(a,b){ return paraISO(a.data).localeCompare(paraISO(b.data)); }); });
+
+    // Descrição do equipamento/barril, para o título da ficha ("BAR-012 — Barril inox 50 L").
+    // Fonte: Cadastro de Equipamentos / Barris (descrição atual); se o código não estiver
+    // mais no cadastro, usa a descrição gravada no registro ("CÓDIGO - Descrição").
+    function descricaoDaChave(chave, regs){
+        if (!mostrarCodigo) return '';
+        var norm = function(x){ return String(x||'').trim().toLowerCase().replace(/\s+/g,''); };
+        var k = norm(chave), achou = null;
+        (dadosERP.equipamentos||[]).forEach(function(e){ if (!achou && norm(e.codigo) === k) achou = e.descricao || e.nome || ''; });
+        (dadosERP.barris||[]).forEach(function(b){ if (!achou && norm(b.codigo) === k) achou = b.descricao || b.tipo || ''; });
+        if (achou) return String(achou).trim();
+        for (var i = regs.length - 1; i >= 0; i--) {
+            var bruto = _sanitNormLocal(regs[i].local || regs[i].equipamento || '');
+            var pos = bruto.indexOf(' - ');
+            if (pos >= 0 && bruto.substring(pos + 3).trim()) return bruto.substring(pos + 3).trim();
+        }
+        return '';
+    }
 
     r8pdfCabecalho(doc,titulo,subtitulo);
     var y = 56;
@@ -14586,17 +14807,36 @@ window._gerarPDFSanitPorTipo=function(tipoLocal,titulo,subtitulo){
         // Cabeçalho da ficha — identifica o equipamento/barril pelo código
         doc.setFillColor(cor.bar[0],cor.bar[1],cor.bar[2]); doc.rect(xM,y,W,12,'F');
         doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
-        var tituloFicha = 'FICHA DE SANITIZAÇÃO' + (mostrarCodigo ? ' — CÓDIGO: ' : ' — ') + chave;
+        var descFicha = descricaoDaChave(chave, regs);
+        var tituloFicha = 'FICHA DE SANITIZAÇÃO' + (mostrarCodigo ? ' — CÓDIGO: ' : ' — ') + chave + (descFicha ? ' — ' + descFicha : '');
+        // reduz a fonte se o título (código + descrição) for largo demais para a faixa
+        var _fs = 11; doc.setFontSize(_fs);
+        while (_fs > 7 && doc.getTextWidth(tituloFicha) > W - 40) { _fs -= 0.5; doc.setFontSize(_fs); }
         doc.text(tituloFicha, xM+4, y+8);
         doc.setFontSize(8); doc.setFont('helvetica','normal');
         doc.text(regs.length + ' registro(s)', xM+W-4, y+8, {align:'right'});
         y += 15;
 
+        var soVetores = regs.every(function(s){ return s.vetores; });
+        if (soVetores) {
+            r8pdfAutoTable(doc, {
+                head:[['Data realização','Empresa','Pragas combatidas','Responsável','Obs.']],
+                body: regs.map(function(s){ return [formatarData(s.vetores.dataRealizacao||s.data), s.vetores.empresa||'-', (s.vetores.pragas||[]).join(', ')||'-', s.responsavel||'-', s.obs||'-']; }),
+                startY: y,
+                margin:{left:xM, right:14, bottom:34},
+                headStyles:{fillColor:cor.bd, textColor:[30,30,30]}
+            });
+            y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 10;
+            return;
+        }
         var linhas = regs.map(function(s){
-            return [formatarData(s.data), s.produto||'-', (s.concentracao||'-')+'%', (s.tempo||'-')+' min', s.responsavel||'-', s.obs||'-'];
+            var obsTxt = (s.obs||'') + (s.vetores ? ((s.obs?' | ':'') + 'Pragas: ' + (s.vetores.empresa||'') + ' - ' + (s.vetores.pragas||[]).join(', ') + ' (' + formatarData(s.vetores.dataRealizacao) + ')') : '');
+            var base = [formatarData(s.data), s.produto||'-', (s.concentracao||'-')+'%', (s.tempo||'-')+' min', s.responsavel||'-', obsTxt||'-'];
+            if (temEtapas) base.splice(1, 0, (s.grupoId && s.etapasTotal > 1) ? (s.etapa + '/' + s.etapasTotal) : '-');
+            return base;
         });
         r8pdfAutoTable(doc, {
-            head:[['Data','Produto Utilizado','Conc.','Tempo','Responsável','Obs.']],
+            head:[temEtapas ? ['Data','Etapa','Produto Utilizado','Conc.','Tempo','Responsável','Obs.'] : ['Data','Produto Utilizado','Conc.','Tempo','Responsável','Obs.']],
             body: linhas,
             startY: y,
             margin:{left:xM, right:14, bottom:34},
@@ -19498,16 +19738,24 @@ if(document.readyState === 'loading'){
             <div class="campo-linha"><label>Data</label><input type="date" id="sanitizacaoData"></div>
             <div class="campo-linha"><label>Tipo de Local</label><select id="sanitizacaoTipoLocal" onchange="_toggleTipoLocalSanit()"><option value="equipamento">Equipamento</option><option value="instalacao">Instalação Sanitária</option><option value="envase">Envase</option></select></div>
             <div class="campo-linha" id="wrapEquipSanit"><label>Equipamento</label><select id="sanitizacaoEquipamento"></select></div>
-            <div class="campo-linha" id="wrapInstalSanit" style="display:none"><label>Local</label><select id="sanitizacaoLocalInstal"><option value="">Selecione</option><option>Pia de Higienização</option><option>Piso da Sala de Produção</option><option>Paredes da Sala de Produção</option><option>Dreno/Ralo</option><option>Área de Envase</option><option>Câmara Fria</option><option>Sala de Maturação</option><option>Banheiro/Vestiário</option><option>Outro</option></select></div>
+            <div class="campo-linha" id="wrapInstalSanit" style="display:none"><label>Local(is) — pode marcar mais de um para um relatório conjunto</label>
+                <div id="sanitizacaoLocaisInstal" style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:4px"></div>
+                <input type="text" id="sanitizacaoLocalOutro" placeholder="Outro local (descreva)" style="display:none;margin-top:6px">
+            </div>
+            <div id="sanitVetoresBox" style="display:none;background:#f0f9ff;border:1.5px solid #7dd3fc;border-radius:12px;padding:10px 12px;margin-bottom:10px">
+                <div style="font-weight:800;font-size:12.5px;color:#075985;margin-bottom:6px"><i class="fas fa-bug"></i> Controle de Vetores e Pragas</div>
+                <div class="campo-linha"><label>Data de realização *</label><input type="date" id="sanitVetData"></div>
+                <div class="campo-linha"><label>Empresa que realizou *</label><input type="text" id="sanitVetEmpresa" placeholder="Nome da empresa / prestador"></div>
+                <div class="campo-linha"><label>Pragas combatidas *</label>
+                    <div id="sanitVetPragas" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px"></div>
+                    <input type="text" id="sanitVetOutras" placeholder="Outras pragas (descreva)" style="display:none;margin-top:6px">
+                </div>
+            </div>
             <div class="campo-linha" id="wrapEnvaseSanit" style="display:none"><label>Item Envasado</label><select id="sanitizacaoLocalEnvase" onchange="_toggleItemEnvasadoSanit()"><option value="">Selecione</option><option>Garrafa</option><option>Barril</option><option>Lata</option><option>Outro</option></select></div>
             <div class="campo-linha" id="wrapEnvaseBarrilSanit" style="display:none"><label>Código do Barril</label><select id="sanitizacaoEnvaseBarrilCodigo"><option value="">Selecione o barril</option></select></div>
             <div class="campo-linha" id="wrapEnvaseQtdSanit" style="display:none"><label>Quantidade (un.)</label><input type="number" id="sanitizacaoQtdEnvase" placeholder="-"></div>
-            <div class="campo-linha"><label>Produto Sanitizante</label><select id="sanitizacaoProduto"><option value="">Selecione</option></select></div>
-            <div class="linha-dupla">
-                <div><label>Concentração (%)</label><input type="number" step="0.1" id="sanitizacaoConcentracao" placeholder="-"></div>
-                <div><label>Tempo de Contato (min)</label><input type="number" id="sanitizacaoTempo" placeholder="-"></div>
-            </div>
-            <div class="campo-linha"><label>Quantidade do Produto (ml)</label><input type="number" step="1" id="sanitizacaoQtdML" placeholder="-"></div>
+            <div id="sanitEtapasWrap"></div>
+            <button type="button" id="sanitAddEtapaBtn" class="btn-cancelar" style="width:100%;margin:4px 0 10px" onclick="_sanitAddEtapa()"><i class="fas fa-plus-circle"></i> Adicionar outra etapa / produto</button>
             <div class="campo-linha"><label>Responsável</label><input type="text" id="sanitizacaoResponsavel" placeholder="-"></div>
             <div class="campo-linha"><label>Obs.</label><textarea id="sanitizacaoObs" rows="3" placeholder="-"></textarea></div>
             <button class="btn-salvar" onclick="adicionarSanitizacaoERP()"><i class="fas fa-check-circle"></i> Salvar</button>
