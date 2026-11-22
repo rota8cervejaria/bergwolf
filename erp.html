@@ -28,7 +28,7 @@
     // aparelhos (link, app, qualquer celular/tablet), assim que tiverem
     // internet — sem nenhuma ação do usuário.
     // ══════════════════════════════════════════════════════════════════
-    window.R8_BUILD = '2026-11-17-past1';
+    window.R8_BUILD = '2026-11-22-qr2';
     // Endereço público usado em TODOS os QR Codes (lote, barril, equipamento, sanitização, venda,
     // câmara fria). Para trocar de domínio no futuro, altere só esta linha.
     window.R8_URL_QR = 'https://www.cervejariabergwolf.com/erp.html';
@@ -17555,6 +17555,13 @@ function _iniciarAuthListener() {
         // não deve cair na landing page pública como o index.html).
         if (user) {
             usuarioAtual = user;
+            // QR Code de barril/tanque/equipamento lido por quem JÁ está com sessão
+            // aberta no aparelho: mostra a tela pública do QR (e não o Dashboard do ERP).
+            if(window._qrBarrilParam || window._qrEquipamentoParam) {
+                if(window._qrBarrilParam) abrirBarrilPublico(window._qrBarrilParam);
+                else mostrarDestinoEquipamentoPub(window._qrEquipamentoParam);
+                return;
+            }
             // Antes, esta rota (sessão já autenticada, ex.: reabrir o app/PWA
             // ou recarregar a página) nunca definia window._r8PapelUsuario —
             // só os caminhos de login direto (usuarioLoginEmailSenha,
