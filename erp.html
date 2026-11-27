@@ -28,7 +28,7 @@
     // aparelhos (link, app, qualquer celular/tablet), assim que tiverem
     // internet — sem nenhuma ação do usuário.
     // ══════════════════════════════════════════════════════════════════
-    window.R8_BUILD = 'BergWolf_26.11.2026_v02'; // padrão: BergWolf_DD.MM.AAAA_vNN (NN reinicia em 01 a cada dia)
+    window.R8_BUILD = 'BergWolf_26.11.2026_v03'; // padrão: BergWolf_DD.MM.AAAA_vNN (NN reinicia em 01 a cada dia)
     // Endereço público usado em TODOS os QR Codes (lote, barril, equipamento, sanitização, venda,
     // câmara fria). Para trocar de domínio no futuro, altere só esta linha.
     window.R8_URL_QR = 'https://www.cervejariabergwolf.com/erp.html';
@@ -5365,7 +5365,7 @@ window.confirmarTransferenciaLote = function() {
     if (vol > saldo + 0.001) { R8.toast.erro('Volume maior que o saldo do barril de origem (' + saldo.toFixed(2) + ' L).'); return; }
     if (modoLatas || !loteNovo) loteNovo = p.lote;
     var mesmoLote = (loteNovo === p.lote);
-    if (!mesmoLote && !(loteNovo.indexOf(p.lote) === 0 && /^[A-Z]$/.test(loteNovo.slice(p.lote.length)))) { R8.toast.aviso('Para lote novo, use o lote original seguido de letra (ex.: ' + p.lote + 'A).'); return; }
+    
     if (mesmoLote && g('trfInsumo')) { R8.toast.aviso('Adição de insumo exige lote novo (ex.: ' + p.lote + 'A).'); return; }
     var loteUsado = (dadosERP.produtosAcabados || []).some(function(x) { return x.lote === loteNovo; })
         || (dadosERP.fichasTecnicas || []).some(function(f) { return f.lote === loteNovo; });
